@@ -2,7 +2,10 @@
 
 
 
-Directory structure:
+
+   
+    
+    Directory structure:
     layers:
         encoder: the encoding layer. 
             Input: paragraph, conversation history, current question.
@@ -27,7 +30,6 @@ Directory structure:
         the common utils used by multi layers or the whole model
     config.py:
         mutable configuration like epochs=5, output_dir
-    
     data:
         data
     log:

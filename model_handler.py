@@ -3,7 +3,6 @@ import torch.nn as nn
 from transformers import *
 from utils.data_utils import prepare_datasets
 import os
-import tensorflow as tf
 
 MODELS = {'BERT':(BertModel,       BertTokenizer,       'bert-base-uncased')}
 

@@ -1,0 +1,36 @@
+1, vocab:
+1.1, How to use it:
+DOC.vocab = torch.load(args.vocab)
+self.src_embed = nn.Embedding.from_pretrained(DOC.vocab.vectors, freeze=False).cuda()
+
+1.2, How to generate it:
+Maybe we can search the method in the internet.
+The file used by the original graph model is called vocab.new.100d.lower.pt. It is for Glove 100 dimensions embeddings.
+
+
+2, train.eg
+2.1, Format:
+entity1: the first sentences it is in - its role in the sentence|the second sentences it is in - its role in the sentence ... entity2: ...
+
+2.2, Example:
+power-law:0-1|1-1
+
+2.3, The corresponding paragraph of the example:
+there is experimental evidence that cortical neurons show avalanche activity with the intensity of firing events being distributed as a power-law . <eos> we present a biologically plausible extension of a neural network which exhibits a power-law avalanche distribution for a wide range of connectivity parameters .
+
+2.4, role index meaning:
+1=subject, 2=object, 3=other
+
+2.5, how to generate:
+2.5.1, need to understand POS
+2.5.2, use Stanford POS tagger or Dependency Parser to generate pos of paragraph. Find tool online and download it.
+2.5.3, a example of POS: https://parts-of-speech.info/
+2.5.4, maybe need to use named entity labeling tools. I am not sure.
+
+
+3, train.lower 
+3.1, Format:
+paragraph_sentence_1 <eos> paragraph_sentence_2 .. <eos> question_1_sentence 
+paragraph_sentence_1 <eos> paragraph_sentence_2 .. <eos> question_1_sentence <eos> answer_1_sentence <eos> question_2_sentence
+paragraph_sentence_1 <eos> paragraph_sentence_2 .. <eos> question_1_sentence <eos> answer_1_sentence <eos> question_2_sentence <eos> answer_2_sentence <eos> question_3_sentence
+

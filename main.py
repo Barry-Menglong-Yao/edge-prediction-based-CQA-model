@@ -28,8 +28,8 @@ def str2bool(v):
 
 
 def coqa_parser(parser):
-    parser.add_argument('--trainset', type = str, default = 'data/coqa.train.json', help = 'training dataset file')
-    parser.add_argument('--devset', type = str, default = 'data/coqa.dev.json', help = 'development dataset file')
+    parser.add_argument('--trainset', type = str, default = 'data/coqa/example.train.json', help = 'training dataset file')
+    parser.add_argument('--devset', type = str, default = 'data/coqa/example.dev.json', help = 'development dataset file')
     parser.add_argument('--model_name', type = str, default = 'BERT', help = '[BERT|RoBERTa|DistilBERT|SpanBERT]')
     parser.add_argument('--cuda', type = str2bool, default = True, help = 'use gpu or not')
 
@@ -39,9 +39,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
     coqa_parser(parser)
     # dataset settings
-    parser.add_argument('--corpus', type=str, nargs='+',default=['nips/train.lower','nips/train.eg'])
+    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label'])
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
-    parser.add_argument('--valid', type=str, nargs='+',default=['nips/val.lower', 'nips/val.eg'])
+    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label'])
 
     parser.add_argument('--writetrans', type=str,default='decoding/gdp0.5_gl2.devorder', help='write translations for to a file')
     parser.add_argument('--ref', type=str, help='references, word unit')
@@ -88,7 +88,7 @@ def parse_args():
     parser.add_argument('--agg',default='gate', choices=['gate', 'att'], help='node agg method')
 
     parser.add_argument('--reglamb', default=0, type=float)
-    parser.add_argument('--loss', default=0, type=int)
+    parser.add_argument('--loss', default=1, type=int)
 
     parser.add_argument('--entityemb', default='glove',choices=['glove', 'lstm'])
     parser.add_argument('--ehid', default=150, type=int)
@@ -109,7 +109,7 @@ def parse_args():
     parser.add_argument('--eval_every', type=int, default=100, help='validate every * step')
     parser.add_argument('--save_every', type=int, default=50, help='save model every * step (5000)')
 
-    parser.add_argument('--batch_size', type=int, default=16, help='# of tokens processed per batch')
+    parser.add_argument('--batch_size', type=int, default=5, help='# of tokens processed per batch')
     parser.add_argument('--delay', type=int, default=1, help='gradiant accumulation for delayed update for large batch')
 
     parser.add_argument('--optimizer', type=str, default='Noam')
@@ -137,8 +137,8 @@ def parse_args():
     parser.add_argument('--alpha', type=float, default=0.6, help='length normalization weights')
     # parser.add_argument('--T', type=float, default=1, help='softmax temperature when decoding')
 
-    parser.add_argument('--test', type=str, nargs='+', help='test src file',default=['nips/test.lower', 
-    'nips/test.eg'])
+    parser.add_argument('--test', type=str, nargs='+', help='test src file',default=['data/coqa/example/train.lower','data/coqa/example/train.eg'
+    ,'data/coqa/example/train.label' ])
 
     # model saving/reloading, output translations
     parser.add_argument('--load_from', nargs='+', default=None, help='load from 1.modelname, 2.lastnumber, 3.number')
@@ -217,7 +217,7 @@ def run_model(args):
                            sequential=True)
 
         GRAPH = GraphField(batch_first=True)
-
+        LABEL_FIELD=data.Field(batch_first=True, include_lengths=True, use_vocab=False)
         train_data = DocDataset(path=args.corpus, text_field=DOC, order_field=ORDER, graph_field=GRAPH)
 
         dev_data = DocDataset(path=args.valid, text_field=DOC, order_field=ORDER, graph_field=GRAPH)

@@ -1,3 +1,5 @@
 __pycache__/*.pyc
 *.pyc
 .vscode/settings.json
+decoding/gdp0.5_gl2.devorder
+models/gdp0.5_gl2.best.pt

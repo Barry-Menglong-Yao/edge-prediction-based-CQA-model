@@ -47,24 +47,24 @@ class GraphField(data.Field):
 class DocDataset(data.Dataset):
     def __init__(self, path, text_field, order_field, graph_field,
                  encoding='utf-8', **kwargs):
-        fields = [('doc', text_field), ('order', order_field), ('entity', graph_field)]
+        fields = [('doc', text_field), ('order', order_field), ('entity', graph_field),('label',order_field)]
         examples = []
-        path, einspath = path
-        with open(path, 'r', encoding=encoding) as f, open(einspath, 'r') as fe:
-            for line, lineeins in zip(f, fe):
+        path, einspath,label_path = path
+        with open(path, 'r', encoding=encoding) as f, open(einspath, 'r') as fe,open(label_path,'r') as lable_f:
+            for line, lineeins,lables  in zip(f, fe,lable_f):
                 line = line.strip()
                 order = list(range(line.count('<eos>') + 1))
                 if 'train' in path:
                     if len(order) > 1:
-                        examples.append(data.Example.fromlist([line, order, lineeins], fields))
+                        examples.append(data.Example.fromlist([line, order, lineeins,lables], fields))
                 else:
-                    examples.append(data.Example.fromlist([line, order, lineeins], fields))
+                    examples.append(data.Example.fromlist([line, order, lineeins,lables], fields))
 
         super(DocDataset, self).__init__(examples, fields, **kwargs)
 
 
 class MyBatch(Batch):
-    def __init__(self, allsentences, orders, doc_len, ewords, elocs, dataset=None,
+    def __init__(self, allsentences, orders, doc_len, ewords, elocs,label_list, dataset=None,
                  device=None):
         """Create a Batch from a list of examples."""
         if data is not None:
@@ -83,7 +83,8 @@ class MyBatch(Batch):
             setattr(self, 'doc', dataset.fields['doc'].process(allsentences, device=device))
 
             setattr(self, 'e_words', dataset.fields['doc'].process(ewords, device=device))
-
+        
+            setattr(self, 'labels', dataset.fields['order'].process(label_list, device=device))
             # setattr(self, 'docwords', dataset.fields['doc'].process(doc_words, device=device))
             # setattr(self, 'graph', dataset.fields['e2e'].process_graph(e2ebatch, e2sbatch, orders,
             #                                                            doc_sent_word_len, device=device))
@@ -124,6 +125,7 @@ class DocIter(data.BucketIterator):
 
                 ewords = []
                 elocs = []
+                label_list = []
                 for ex in minibatch:
                     doc, order = ex.doc, ex.order
 
@@ -164,11 +166,24 @@ class DocIter(data.BucketIterator):
                     elocs.append(newlocs)
                     ewords.append(ew)
 
-                yield MyBatch(allsentences, orders, doc_len, ewords, elocs,
+                    label_list_of_one_text=gen_label_list(ex)
+                    label_list.append(label_list_of_one_text)
+                    
+
+
+                yield MyBatch(allsentences, orders, doc_len, ewords, elocs,label_list,
                               self.dataset, self.device)
             if not self.repeat:
                 return
 
+
+def gen_label_list(example):
+    labels_of_one_text=example.label
+    label_list_of_one_text=[]
+    for label_of_one_entity in labels_of_one_text :
+        label_list_of_one_text.append(int(label_of_one_entity))
+    return label_list_of_one_text
+    
 
 '''
 def batch(data, batch_size, batch_size_fn=None):

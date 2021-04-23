@@ -8,7 +8,7 @@ import subprocess
 import torch.nn.functional as F
 from model.generator import Beam
 from data.data import DocField, DocDataset, DocIter
-
+from utils.config import is_cqa_task
 
 class GRUCell(nn.Module):
     def __init__(self, x_dim, h_dim):
@@ -183,7 +183,7 @@ class GRNGOB(nn.Module):
         if self.dp > 0:
             s_h = F.dropout(s_h, self.dp, self.training)
 
-        return s_h, g_h
+        return s_h, e_h,g_h
 
 
 class PointerNet(nn.Module):
@@ -208,17 +208,24 @@ class PointerNet(nn.Module):
                               layer=args.gnnl, dp=args.gnndp, agg=args.agg)
 
         d_mlp = args.d_mlp
+        if is_cqa_task():
+            mlp_output_d=2
+        else:
+            mlp_output_d=1
         self.linears = nn.ModuleList([nn.Linear(args.d_rnn, d_mlp),
                                       nn.Linear(args.d_rnn * 2, d_mlp),
-                                      nn.Linear(d_mlp, 1)])
+                                      nn.Linear(d_mlp, mlp_output_d),
+                                      nn.Linear(args.ehid, d_mlp)])
         self.decoder = nn.LSTM(args.d_rnn, args.d_rnn, batch_first=True)
         self.critic = None
 
     def equip(self, critic):
         self.critic = critic
 
-    def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs):
-        document_matrix, _, hcn, key = self.encode(src_and_len, doc_num, ewords_and_len, elocs)
+    def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs,label_of_one_batch_and_len):
+        document_matrix, _, hcn, key,entity_h = self.encode(src_and_len, doc_num, ewords_and_len, elocs)
+        cur_question_h=key[:,-1,:]
+        #compare : cur_question_h vs entity_h[:,i,:] for multi times
 
         start = document_matrix.new_zeros(document_matrix.size(0), 1, document_matrix.size(2))
         target, tgt_len = tgt_and_len
@@ -241,13 +248,14 @@ class PointerNet(nn.Module):
 
         _, recovered_ix = torch.sort(ix, descending=False)
         dec_outputs = dec_outputs[recovered_ix]
-
+ 
         # B qN 1 H
         query = self.linears[0](dec_outputs).unsqueeze(2)
         # B 1 kN H
         key = key.unsqueeze(1)
+        queryAddKey=query + key
         # B qN kN H
-        e = torch.tanh(query + key)
+        e = torch.tanh(queryAddKey)
         # B qN kN
         e = self.linears[2](e).squeeze(-1)
 
@@ -356,7 +364,7 @@ class PointerNet(nn.Module):
         if self.emb_dp > 0:
             entity_emb = F.dropout(entity_emb, self.emb_dp, self.training)
 
-        para, hn = self.encoder(sentences, sents_mask, entity_emb, words_mask, elocs)
+        para,entity_h, hn = self.encoder(sentences, sents_mask, entity_emb, words_mask, elocs)
 
         hn = hn.unsqueeze(0)
         cn = torch.zeros_like(hn)
@@ -365,7 +373,7 @@ class PointerNet(nn.Module):
         keyinput = torch.cat((sentences, para), -1)
         key = self.linears[1](keyinput)
 
-        return sentences, para, hcn, key
+        return sentences, para, hcn, key,entity_h
 
     def step(self, prev_y, prev_handc, keys, mask):
         '''
@@ -394,9 +402,35 @@ class PointerNet(nn.Module):
     def load_pretrained_emb(self, emb):
         self.src_embed = nn.Embedding.from_pretrained(emb, freeze=False).cuda()
 
+class CqaNet(PointerNet):
+    def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs,label_of_one_batch_and_len):
+        document_matrix, _, hcn, key,entity_h = self.encode(src_and_len, doc_num, ewords_and_len, elocs)
+        cur_question_h=key[:,-1,:]
+        cur_question_h=cur_question_h.unsqueeze(1)
+        entity_h = self.linears[3](entity_h)
+        cur_question_h = self.linears[0](cur_question_h) 
+        relations=cur_question_h+entity_h
+        e = torch.tanh(relations)
+        e = self.linears[2](e).squeeze(-1)
+        
+        label_of_one_batch,_=label_of_one_batch_and_len 
+        # m = nn.Softmax(dim=2)
+        # output = m(e)
+        # print(output)
+        logp = F.log_softmax(e, dim=-1)
+        logp = logp.view(-1, logp.size(-1))
+        loss = self.critic(logp, label_of_one_batch.contiguous().view(-1))
+
+        #in loss, need remove the loss of padded null entity TODO
+        # target_mask = target_mask.view(-1)
+        # loss.masked_fill_(target_mask == 0, 0)
+
+        loss = loss.sum()/label_of_one_batch.size(0)
+
+        return loss
 
 def beam_search_pointer(args, model, src_and_len, doc_num, ewords_and_len, elocs):
-    sentences, _, dec_init, keys = model.encode(src_and_len, doc_num,  ewords_and_len, elocs)
+    sentences, _, dec_init, keys,entity_h = model.encode(src_and_len, doc_num,  ewords_and_len, elocs)
 
     document = sentences.squeeze(0)
     T, H = document.size()
@@ -464,7 +498,11 @@ def print_params(model):
 
 
 def train(args, train_iter, dev, fields, checkpoint):
-    model = PointerNet(args)
+    if is_cqa_task():
+        model = CqaNet(args)
+    else:
+        model = PointerNet(args)
+    # 
     model.cuda()
 
     DOC, ORDER, GRAPH = fields
@@ -500,7 +538,7 @@ def train(args, train_iter, dev, fields, checkpoint):
 
             t1 = time.time()
 
-            loss = model(batch.doc, batch.order, batch.doc_len, batch.e_words, batch.elocs)
+            loss = model(batch.doc, batch.order, batch.doc_len, batch.e_words, batch.elocs,batch.labels)
 
             loss.backward()
             opt.step()
@@ -550,8 +588,13 @@ def train(args, train_iter, dev, fields, checkpoint):
     model.load_state_dict(checkpoint['model'])
 
     with torch.no_grad():
-        acc, pmr, ktau, pm = valid_model(args, model, test_real, DOC, shuflle_times=1)
-        print('test acc:{:.4%} pmr:{:.2%} ktau:{:.4f} pm:{:.2%}'.format(acc, pmr, ktau, pm))
+        if args.loss:
+            score = valid_model(args, model, dev, DOC, 'loss')
+            print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, score, best_score))
+        else:
+            acc, pmr, ktau, pm  = valid_model(args, model, dev, DOC)
+            print('test acc:{:.4%} pmr:{:.2%} ktau:{:.4f} pm:{:.2%}'.format(acc, pmr, ktau, pm))
+        
 
 
 def valid_model(args, model, dev, field, dev_metrics=None, shuflle_times=1):
@@ -562,7 +605,7 @@ def valid_model(args, model, dev, field, dev_metrics=None, shuflle_times=1):
         number = 0
 
         for iters, dev_batch in enumerate(dev):
-            loss = model(dev_batch.doc, dev_batch.order, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs)
+            loss = model(dev_batch.doc, dev_batch.order, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs,dev_batch.labels)
             n = dev_batch.order[0].size(0)
             batch_loss = -loss.item() * n
             total_score.append(batch_loss)

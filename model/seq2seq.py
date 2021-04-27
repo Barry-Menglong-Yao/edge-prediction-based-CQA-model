@@ -404,14 +404,7 @@ class PointerNet(nn.Module):
 
 class CqaNet(PointerNet):
     def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs,label_of_one_batch_and_len):
-        document_matrix, _, hcn, key,entity_h = self.encode(src_and_len, doc_num, ewords_and_len, elocs)
-        cur_question_h=key[:,-1,:]
-        cur_question_h=cur_question_h.unsqueeze(1)
-        entity_h = self.linears[3](entity_h)
-        cur_question_h = self.linears[0](cur_question_h) 
-        relations=cur_question_h+entity_h
-        e = torch.tanh(relations)
-        e = self.linears[2](e).squeeze(-1)
+        e=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
         
         label_of_one_batch,_=label_of_one_batch_and_len 
         # m = nn.Softmax(dim=2)
@@ -428,6 +421,34 @@ class CqaNet(PointerNet):
         loss = loss.sum()/label_of_one_batch.size(0)
 
         return loss
+
+    def gen_logics(self, src_and_len,   doc_num, ewords_and_len, elocs ):
+        document_matrix, _, hcn, key,entity_h = self.encode(src_and_len, doc_num, ewords_and_len, elocs)
+        cur_question_h=self.gen_question_h(key,doc_num)
+        # cur_question_h=cur_question_h.unsqueeze(1)
+        entity_h = self.linears[3](entity_h) #TODO some padded are also computing
+        cur_question_h = self.linears[0](cur_question_h) 
+        relations=cur_question_h+entity_h
+        e = torch.tanh(relations)
+        e = self.linears[2](e) 
+        return e 
+
+    def gen_question_h(self,key,doc_num):
+        question_h_list=[]
+        for i in range(len(doc_num)):
+            one_question_h=key[i,doc_num[i]-1,:]
+            question_h_list.append(one_question_h)
+        batch_question_h=torch.stack(question_h_list,dim=0)
+        batch_question_h=batch_question_h.unsqueeze(1)
+        return batch_question_h
+
+    def predict(self, src_and_len, doc_num, ewords_and_len, elocs):
+        e=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
+        m = nn.Softmax(dim=-1)
+        classes_probability = m(e) 
+        predicted_labels = torch.argmax(classes_probability, axis=-1)
+    
+        return predicted_labels      
 
 def beam_search_pointer(args, model, src_and_len, doc_num, ewords_and_len, elocs):
     sentences, _, dec_init, keys,entity_h = model.encode(src_and_len, doc_num,  ewords_and_len, elocs)
@@ -613,83 +634,152 @@ def valid_model(args, model, dev, field, dev_metrics=None, shuflle_times=1):
 
         return sum(total_score) / number
     else:
-        f = open(args.writetrans, 'w')
+        if is_cqa_task():
+            return valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times)
+        else:
+            return valid_sentence_ordering_model(args, model, dev, field, dev_metrics , shuflle_times)
+        
 
-        if args.beam_size != 1:
-            print('beam search with beam', args.beam_size)
+def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
+    f = open(args.writetrans, 'w')
+    best_acc = []
+    for epc in range(shuflle_times):
+        truth = []
+        predicted = []
 
-        best_acc = []
-        for epc in range(shuflle_times):
-            truth = []
-            predicted = []
+        for j, dev_batch in enumerate(dev):
+            tru = dev_batch.labels[0].view(-1).tolist()
+            truth.append(tru )
+            pred = model.predict(dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs)
+            pred=pred.view(-1).tolist()
+            predicted.append(pred)
+        right, total = 0, 0
+        pmr_right = 0
+        taus = []
+        # pm
+        pm_p, pm_r = [], []
+        import itertools
 
-            for j, dev_batch in enumerate(dev):
-                tru = dev_batch.order[0].view(-1).tolist()
-                truth.append(tru)
+        from sklearn.metrics import accuracy_score
 
-                if len(tru) == 1:
-                    pred = tru
-                else:
-                    pred = beam_search_pointer(args, model, dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs)
+        for t, p in zip(truth, predicted):
+       
 
-                predicted.append(pred)
-                print('{}|||{}'.format(' '.join(map(str, pred)), ' '.join(map(str, truth[-1]))),
-                      file=f)
+            eq = np.equal(t , p )
+            right += eq.sum()
+            total += len(t)
 
-            right, total = 0, 0
-            pmr_right = 0
-            taus = []
+            # pmr_right += eq.all()
+
             # pm
-            pm_p, pm_r = [], []
-            import itertools
+            # s_t = set([i for i in itertools.combinations(t, 2)])
+            # s_p = set([i for i in itertools.combinations(p, 2)])
+            # pm_p.append(len(s_t.intersection(s_p)) / len(s_p))
+            # pm_r.append(len(s_t.intersection(s_p)) / len(s_t))
 
-            from sklearn.metrics import accuracy_score
+            # cn_2 = len(p) * (len(p) - 1) / 2
+            # pairs = len(s_p) - len(s_p.intersection(s_t))
+            # tau = 1 - 2 * pairs / cn_2
+            # taus.append(tau)
 
-            for t, p in zip(truth, predicted):
-                if len(p) == 1:
-                    right += 1
-                    total += 1
-                    pmr_right += 1
-                    taus.append(1)
-                    continue
+        # acc = right / total
 
-                eq = np.equal(t, p)
-                right += eq.sum()
-                total += len(t)
+        acc = accuracy_score( list(itertools.chain.from_iterable(truth)),
+                                list(itertools.chain.from_iterable(predicted))   )
 
-                pmr_right += eq.all()
+        best_acc.append(acc)
 
-                # pm
-                s_t = set([i for i in itertools.combinations(t, 2)])
-                s_p = set([i for i in itertools.combinations(p, 2)])
-                pm_p.append(len(s_t.intersection(s_p)) / len(s_p))
-                pm_r.append(len(s_t.intersection(s_p)) / len(s_t))
+        # pmr = pmr_right / len(truth)
+        # taus = np.mean(taus)
 
-                cn_2 = len(p) * (len(p) - 1) / 2
-                pairs = len(s_p) - len(s_p.intersection(s_t))
-                tau = 1 - 2 * pairs / cn_2
-                taus.append(tau)
+        # pm_p = np.mean(pm_p)
+        # pm_r = np.mean(pm_r)
+        # pm = 2 * pm_p * pm_r / (pm_p + pm_r)
 
-            # acc = right / total
+        print('acc:', acc)
 
-            acc = accuracy_score(list(itertools.chain.from_iterable(truth)),
-                                 list(itertools.chain.from_iterable(predicted)))
+    f.close()
+    acc = max(best_acc)
+    return acc ,0,0,0
 
-            best_acc.append(acc)
 
-            pmr = pmr_right / len(truth)
-            taus = np.mean(taus)
+def valid_sentence_ordering_model(args, model, dev, field, dev_metrics , shuflle_times):
+    f = open(args.writetrans, 'w')
 
-            pm_p = np.mean(pm_p)
-            pm_r = np.mean(pm_r)
-            pm = 2 * pm_p * pm_r / (pm_p + pm_r)
+    if args.beam_size != 1:
+        print('beam search with beam', args.beam_size)
 
-            print('acc:', acc)
+    best_acc = []
+    for epc in range(shuflle_times):
+        truth = []
+        predicted = []
 
-        f.close()
-        acc = max(best_acc)
-        return acc, pmr, taus, pm
+        for j, dev_batch in enumerate(dev):
+            tru = dev_batch.order[0].view(-1).tolist()
+            truth.append(tru)
 
+            if len(tru) == 1:
+                pred = tru
+            else:
+                pred = beam_search_pointer(args, model, dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs)
+
+            predicted.append(pred)
+            print('{}|||{}'.format(' '.join(map(str, pred)), ' '.join(map(str, truth[-1]))),
+                    file=f)
+
+        right, total = 0, 0
+        pmr_right = 0
+        taus = []
+        # pm
+        pm_p, pm_r = [], []
+        import itertools
+
+        from sklearn.metrics import accuracy_score
+
+        for t, p in zip(truth, predicted):
+            if len(p) == 1:
+                right += 1
+                total += 1
+                pmr_right += 1
+                taus.append(1)
+                continue
+
+            eq = np.equal(t, p)
+            right += eq.sum()
+            total += len(t)
+
+            pmr_right += eq.all()
+
+            # pm
+            s_t = set([i for i in itertools.combinations(t, 2)])
+            s_p = set([i for i in itertools.combinations(p, 2)])
+            pm_p.append(len(s_t.intersection(s_p)) / len(s_p))
+            pm_r.append(len(s_t.intersection(s_p)) / len(s_t))
+
+            cn_2 = len(p) * (len(p) - 1) / 2
+            pairs = len(s_p) - len(s_p.intersection(s_t))
+            tau = 1 - 2 * pairs / cn_2
+            taus.append(tau)
+
+        # acc = right / total
+
+        acc = accuracy_score(list(itertools.chain.from_iterable(truth)),
+                                list(itertools.chain.from_iterable(predicted)))
+
+        best_acc.append(acc)
+
+        pmr = pmr_right / len(truth)
+        taus = np.mean(taus)
+
+        pm_p = np.mean(pm_p)
+        pm_r = np.mean(pm_r)
+        pm = 2 * pm_p * pm_r / (pm_p + pm_r)
+
+        print('acc:', acc)
+
+    f.close()
+    acc = max(best_acc)
+    return acc, pmr, taus, pm
 
 def decode(args, test_real, fields, checkpoint):
     with torch.no_grad():

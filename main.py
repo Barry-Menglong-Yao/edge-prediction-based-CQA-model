@@ -88,7 +88,7 @@ def parse_args():
     parser.add_argument('--agg',default='gate', choices=['gate', 'att'], help='node agg method')
 
     parser.add_argument('--reglamb', default=0, type=float)
-    parser.add_argument('--loss', default=1, type=int)
+    parser.add_argument('--loss', default=0, type=int)
 
     parser.add_argument('--entityemb', default='glove',choices=['glove', 'lstm'])
     parser.add_argument('--ehid', default=150, type=int)

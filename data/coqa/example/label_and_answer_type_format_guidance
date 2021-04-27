@@ -1,0 +1,24 @@
+train_label:
+
+for question_i in all_questions:
+	entity_list=find_entities_in(paragraph,previous conversation,question_i)
+	answer_i=find_answer_of(question_i) 
+	for entity in entity_list:
+		if entity is substring of answer_i:
+			return 1 
+		else:
+			return 0
+	
+for question_i in all_questions:
+	answer_i=find_answer_of(question_i) 
+	#I am not sure whether the answer in coqa should be "yes" or "YES" or "yes." You can check coqa data.
+	if answer_i=="yes" 
+		return YES
+	elif answer_i=="unknown"
+		return UNKNOWN
+	elif answer_i=="no"
+		return NO
+	else:
+		return SPAN
+
+ 

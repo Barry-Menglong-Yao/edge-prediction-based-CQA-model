@@ -40,6 +40,7 @@ def parse_args():
     coqa_parser(parser)
     # dataset settings
     parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label'])
+    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt'])
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
     parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label'])
 

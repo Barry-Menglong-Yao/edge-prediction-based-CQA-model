@@ -13,12 +13,12 @@ for question_i in all_questions:
 	answer_i=find_answer_of(question_i) 
 	#I am not sure whether the answer in coqa should be "yes" or "YES" or "yes." You can check coqa data.
 	if answer_i=="yes" 
-		return YES
+		return 0
 	elif answer_i=="unknown"
-		return UNKNOWN
+		return 4
 	elif answer_i=="no"
-		return NO
+		return 1
 	else:
-		return SPAN
+		return 3
 
  

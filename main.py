@@ -7,10 +7,10 @@ import logging
 import random
  
 
-from data.data import DocField, DocDataset, DocIter, GraphField
+#from data.data import DocField, DocDataset, DocIter, GraphField
 import time
 
-from model.seq2seq import train, decode
+#from model.seq2seq import train, decode
 from pathlib import Path
 import json
 import os
@@ -28,10 +28,14 @@ def str2bool(v):
 
 
 def coqa_parser(parser):
-    parser.add_argument('--trainset', type = str, default = 'data/coqa/example.train.json', help = 'training dataset file')
-    parser.add_argument('--devset', type = str, default = 'data/coqa/example.dev.json', help = 'development dataset file')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--trainset', type = str, default = 'data/coqa.train.json', help = 'training dataset file')
+    parser.add_argument('--devset', type = str, default = 'data/coqa.dev.json', help = 'development dataset file')
     parser.add_argument('--model_name', type = str, default = 'BERT', help = '[BERT|RoBERTa|DistilBERT|SpanBERT]')
     parser.add_argument('--cuda', type = str2bool, default = True, help = 'use gpu or not')
+
+    args = vars(parser.parse_args())
+    return args
 
 
 
@@ -289,7 +293,7 @@ def run_model(args):
 # TODO: cuda check
 
 def compute_bert_embedding(parser):
-    args = vars(parser.parse_args())
+    args = coqa_parser(parser)
     handler = ModelHandler(args)
     handler.train()
 
@@ -299,5 +303,5 @@ def compute_bert_embedding(parser):
 if __name__ == '__main__':
     args = parse_args()
     print(args)
-    run_model(args)
-    # compute_bert_embedding(args)
+    #run_model(args)
+    compute_bert_embedding(args)

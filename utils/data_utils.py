@@ -22,7 +22,7 @@ WORD_EMBEDDING_FILE_NAME = "data/bert_word_embedding.pt"
 WORD_ID_FILE_NAME = "data/bert_word_id.pt"
 TRAIN_LOWER_FILE_NAME = "data/train_lower.txt"
 TRAIN_EG_FILE_NAME = "data/train_eg.txt"
-TRAIN_LABEL_FILE_NAME = "data/train_label.txt"
+TRAIN_LABEL_FILE_NAME = "data/coqa/test/train_label.txt"
 TRAIN_TYPE_FILE_NAME = "data/train_type.txt"
 
 
@@ -281,7 +281,7 @@ def prepare_train_label(dataset):
     
           #break          
     f = open(TRAIN_LABEL_FILE_NAME, "w")
-    #f.write(train_label_str)
+    f.write(train_label_str)
     f.close() 
 
 def prepare_train_type(dataset):

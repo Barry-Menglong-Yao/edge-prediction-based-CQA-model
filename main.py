@@ -43,8 +43,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
     # coqa_parser(parser)
     # dataset settings
-    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
-    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
+    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
+    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
     parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
 
@@ -287,23 +287,19 @@ def run_model(args):
 
 
 
-
-
-
-# TODO: cuda check
+ 
 
 def compute_bert_embedding( ):
     args = coqa_parser( )
     handler = ModelHandler(args)
-    handler.train()
+    # handler.train()
 
 
 
 
 if __name__ == '__main__':
-    is_preprocessing=True
+    is_preprocessing=False 
     if is_preprocessing:
-        
         compute_bert_embedding( )
     else:
         args = parse_args()

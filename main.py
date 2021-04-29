@@ -43,9 +43,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
     coqa_parser(parser)
     # dataset settings
-    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label'])
+    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
+    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
-    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label'])
+    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
 
     parser.add_argument('--writetrans', type=str,default='decoding/gdp0.5_gl2.devorder', help='write translations for to a file')
     parser.add_argument('--ref', type=str, help='references, word unit')
@@ -92,7 +93,7 @@ def parse_args():
     parser.add_argument('--agg',default='gate', choices=['gate', 'att'], help='node agg method')
 
     parser.add_argument('--reglamb', default=0, type=float)
-    parser.add_argument('--loss', default=1, type=int)
+    parser.add_argument('--loss', default=0, type=int)
 
     parser.add_argument('--entityemb', default='glove',choices=['glove', 'lstm'])
     parser.add_argument('--ehid', default=150, type=int)
@@ -142,7 +143,7 @@ def parse_args():
     # parser.add_argument('--T', type=float, default=1, help='softmax temperature when decoding')
 
     parser.add_argument('--test', type=str, nargs='+', help='test src file',default=['data/coqa/example/train.lower','data/coqa/example/train.eg'
-    ,'data/coqa/example/train.label' ])
+    ,'data/coqa/example/train.label','data/coqa/example/train.answer_type' ])
 
     # model saving/reloading, output translations
     parser.add_argument('--load_from', nargs='+', default=None, help='load from 1.modelname, 2.lastnumber, 3.number')

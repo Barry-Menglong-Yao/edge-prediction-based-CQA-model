@@ -1,0 +1,5 @@
+power-law  should be in the paragraph_1_sentence_1 <eos> paragraph_1_sentence_2 ... <eos> paragraph_1_sentence_N <eos> question_1
+power-law and birthday should be in the paragraph_1_sentence_1 <eos> paragraph_1_sentence_2 ... <eos> paragraph_1_sentence_N <eos> question_1 <eos> answer_1 <eos> question_2
+ 
+
+# This file is only to explain the format of train.lower. It is not a input file.

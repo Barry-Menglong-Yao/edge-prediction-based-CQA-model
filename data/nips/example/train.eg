@@ -1,0 +1,5 @@
+power-law:0-1|1-1
+data:2-2|3-2|4-1 method:3-3|4-3 mapping:3-2|4-2
+uncertainty:1-2|3-1
+sampling:0-3|1-3
+projections:0-1|3-1 signal:0-1|2-1 information:0-2|4-1 reconstruction:0-1|3-1 theory:1-2|2-3|4-1 algorithms:1-2|3-2 sensor:3-1|5-1

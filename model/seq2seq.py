@@ -122,7 +122,7 @@ def train(args, train_iter, dev, fields, checkpoint):
 
             t1 = time.time()
 
-            loss = model(batch.doc, batch.order, batch.doc_len, batch.e_words, batch.elocs,batch.labels)
+            loss = model(batch.doc, batch.order, batch.doc_len, batch.e_words, batch.elocs,batch.labels,batch.answer_types)
 
             loss.backward()
             opt.step()
@@ -213,7 +213,7 @@ def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
         for j, dev_batch in enumerate(dev):
             tru = dev_batch.labels[0].view(-1).tolist()
             truth.append(tru )
-            pred = model.predict(dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs)
+            pred = model.predict(dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs )
             pred=pred.view(-1).tolist()
             predicted.append(pred)
         right, total = 0, 0

@@ -26,20 +26,20 @@ class CqaNet(PointerNet):
         self.answer_type_question_linear=nn.Linear(args.d_rnn, d_mlp)
         self.answer_type_linear=nn.Linear(d_mlp, answer_type_class_num)
          
-    def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs,label_of_one_batch_and_len):
+    def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs,label_of_one_batch_and_len,answer_types):
         entity_logics, answer_type_logics=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
-        entity_loss=self.gen_loss(label_of_one_batch_and_len,entity_logics,True,ewords_and_len)
-        answer_type_loss=self.gen_loss(label_of_one_batch_and_len,answer_type_logics,False,None)
+        entity_loss=self.gen_loss(label_of_one_batch_and_len[0],entity_logics,True,ewords_and_len)
+        answer_type_loss=self.gen_loss(answer_types,answer_type_logics,False,None)
         return (entity_loss+answer_type_loss)/2
 
-    def gen_loss(self,label_of_one_batch_and_len,logics,need_mask,ewords_and_len):
+    def gen_loss(self,label_of_one_batch,logics,need_mask,ewords_and_len):
         if need_mask:
             entity_mask=self.gen_entity_mask( ewords_and_len[1],logics)
             logics.masked_fill_(entity_mask , -1e9)
         
         logp = F.log_softmax(logics, dim=-1)
         logp = logp.view(-1, logp.size(-1))
-        label_of_one_batch,_=label_of_one_batch_and_len 
+        
         loss = self.critic(logp, label_of_one_batch.contiguous().view(-1))
         loss = loss.sum()/label_of_one_batch.size(0)
         return loss
@@ -88,7 +88,7 @@ class CqaNet(PointerNet):
         return batch_question_h
 
     def predict(self, src_and_len, doc_num, ewords_and_len, elocs):
-        e=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
+        e,_=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
         # entity_mask=self.gen_entity_mask( ewords_and_len[1],e)
         # e.masked_fill_(entity_mask , -1e9)
         m = nn.Softmax(dim=-1)

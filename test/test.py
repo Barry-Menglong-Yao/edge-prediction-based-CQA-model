@@ -1,28 +1,31 @@
 import torch 
-# a=torch.tensor([[[[0.9 , 0.04 ]],
-
-#          [[0.06 , 0.4 ]]],
+import os
 
 
-#         [[[0.3 , 0.3 ]],
 
-#          [[0.5 , 0.9 ]]]])
-a=torch.rand(2,1,2)
-print(a.shape)
-print(a)
-# b =torch.tensor([[[[0.4 , 0.9 ],
-#           [0.3, 0.2]]],
+def test_load():
+    with open('data/coqa/train_eg.txt', 'r') as f:
+        content = f.readlines()
+        print(len(content))
+        print(content[len(content)-1])
 
 
-#         [[[0.5, 0.2],
-#           [0.1, 0.3]]]])
-b=torch.rand(2,2,2)
-# b=torch.tensor([[[0.2 , 0.1 ] ],
+    with open('data/coqa/train_lower.txt', 'r') as f:
+        content = f.readlines()
+        print(len(content))
+        print(content[len(content)-1])
 
-#         [[0.3 , 0.4 ] ]])
-print(b.shape)
-print(b)
+    with open('data/coqa/train_label.txt', 'r') as f:
+        content = f.readlines()
+        print(len(content))
+        print(content[len(content)-1])
 
-c=a+ b 
-print(c.shape) 
-print(c)
+    with open('data/coqa/train_type.txt', 'r') as f:
+        content = f.readlines()
+        print(len(content))
+        print(content[len(content)-1])
+test_load()
+
+
+#line_num ==
+#entity_num==label_num

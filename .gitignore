@@ -9,3 +9,4 @@ data/coqa/train_eg.txt
 data/coqa/train_lower.txt
 data/coqa/train_type.txt
 .vscode/.ropeproject/config.py
+data/coqa/train_label.txt

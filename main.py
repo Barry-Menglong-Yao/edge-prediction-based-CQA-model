@@ -7,10 +7,10 @@ import logging
 import random
  
 
-#from data.data import DocField, DocDataset, DocIter, GraphField
+from data.data import DocField, DocDataset, DocIter, GraphField
 import time
 
-#from model.seq2seq import train, decode
+from model.seq2seq import train, decode
 from pathlib import Path
 import json
 import os
@@ -27,7 +27,7 @@ def str2bool(v):
 
 
 
-def coqa_parser(parser):
+def coqa_parser( ):
     parser = argparse.ArgumentParser()
     parser.add_argument('--trainset', type = str, default = 'data/coqa.train.json', help = 'training dataset file')
     parser.add_argument('--devset', type = str, default = 'data/coqa.dev.json', help = 'development dataset file')
@@ -41,7 +41,7 @@ def coqa_parser(parser):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
-    coqa_parser(parser)
+    # coqa_parser(parser)
     # dataset settings
     parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
     # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
@@ -292,8 +292,8 @@ def run_model(args):
 
 # TODO: cuda check
 
-def compute_bert_embedding(parser):
-    args = coqa_parser(parser)
+def compute_bert_embedding( ):
+    args = coqa_parser( )
     handler = ModelHandler(args)
     handler.train()
 
@@ -301,7 +301,11 @@ def compute_bert_embedding(parser):
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    print(args)
-    #run_model(args)
-    compute_bert_embedding(args)
+    is_preprocessing=True
+    if is_preprocessing:
+        
+        compute_bert_embedding( )
+    else:
+        args = parse_args()
+        print(args)
+        run_model(args)

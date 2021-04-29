@@ -39,8 +39,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
     coqa_parser(parser)
     # dataset settings
-    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
-    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
+    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
+    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
     parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/example/train.lower','data/coqa/example/train.eg','data/coqa/example/train.label','data/coqa/example/train.answer_type'])
 

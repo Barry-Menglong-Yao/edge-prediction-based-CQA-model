@@ -11,7 +11,8 @@ from data.data import DocField, DocDataset, DocIter
 from utils.config import is_cqa_task
 from model.graph_model import * 
 from model.cqa_model import * 
-
+import itertools
+from sklearn.metrics import accuracy_score
 
 def beam_search_pointer(args, model, src_and_len, doc_num, ewords_and_len, elocs):
     sentences, _, dec_init, keys,entity_h,_ = model.encode(src_and_len, doc_num,  ewords_and_len, elocs)
@@ -137,15 +138,15 @@ def train(args, train_iter, dev, fields, checkpoint):
         with torch.no_grad():
             print('valid..............')
             if args.loss:
-                score = valid_model(args, model, dev, DOC, 'loss')
-                print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, score, best_score))
+                entity_score = valid_model(args, model, dev, DOC, 'loss')
+                print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, entity_score, best_score))
             else:
-                score, pmr, ktau, _ = valid_model(args, model, dev, DOC)
-                print('epc:{}, val acc:{:.4f} best:{:.4f} pmr:{:.2f} ktau:{:.4f}'.format(epc, score, best_score,
-                                                                                              pmr, ktau))
+                entity_acc ,answer_type_acc, ktau, _ = valid_model(args, model, dev, DOC)
+                print('epc:{}, val answer_type_acc:{:.4f} best:{:.4f} entity_acc :{:.2f} ktau:{:.4f}'.format(epc,
+                 answer_type_acc, best_score,entity_acc, ktau))
 
-            if score > best_score:
-                best_score = score
+            if answer_type_acc > best_score:
+                best_score = answer_type_acc
                 best_iter = epc
 
                 print('save best model at epc={}'.format(epc))
@@ -173,11 +174,11 @@ def train(args, train_iter, dev, fields, checkpoint):
 
     with torch.no_grad():
         if args.loss:
-            score = valid_model(args, model, dev, DOC, 'loss')
-            print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, score, best_score))
+            entity_score = valid_model(args, model, dev, DOC, 'loss')
+            print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, entity_score, best_score))
         else:
-            acc, pmr, ktau, pm  = valid_model(args, model, dev, DOC)
-            print('test acc:{:.4%} pmr:{:.2%} ktau:{:.4f} pm:{:.2%}'.format(acc, pmr, ktau, pm))
+            entity_acc, answer_type_acc, ktau, pm  = valid_model(args, model, dev, DOC)
+            print('test entity_acc:{:.4%} answer_type_acc:{:.2%} ktau:{:.4f} pm:{:.2%}'.format(entity_acc, answer_type_acc, ktau, pm))
         
 
 
@@ -205,43 +206,33 @@ def valid_model(args, model, dev, field, dev_metrics=None, shuflle_times=1):
 
 def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
     f = open(args.writetrans, 'w')
-    best_acc = []
+    best_entity_acc = []
+    best_answer_type_acc = []
     for epc in range(shuflle_times):
-        truth = []
-        predicted = []
-
+        entity_truth = []
+        entity_predicted = []
+        answer_type_truth = []
+        answer_type_predicted = []
         for j, dev_batch in enumerate(dev):
-            tru = dev_batch.labels[0].view(-1).tolist()
-            truth.append(tru )
-            pred = model.predict(dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs )
-            pred=pred.view(-1).tolist()
-            predicted.append(pred)
-        right, total = 0, 0
-        pmr_right = 0
-        taus = []
-        # pm
-        pm_p, pm_r = [], []
-        import itertools
-
-        from sklearn.metrics import accuracy_score
-
-        for t, p in zip(truth, predicted):
-       
-
-            eq = np.equal(t , p )
-            right += eq.sum()
-            total += len(t)
-
-        acc = accuracy_score( list(itertools.chain.from_iterable(truth)),
-                                list(itertools.chain.from_iterable(predicted))   )
-
-        best_acc.append(acc)
-
-        print('acc:', acc)
-
+            entity_truth.append( dev_batch.labels[0].view(-1).tolist() )   
+            answer_type_truth.append(dev_batch.answer_types.view(-1).tolist())
+            predicted_entity_labels,predicted_answer_type_labels   = model.predict(dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs )
+            entity_predicted.append(predicted_entity_labels.view(-1).tolist())
+            answer_type_predicted.append(predicted_answer_type_labels.view(-1).tolist())
+        entity_acc = accuracy_score( list(itertools.chain.from_iterable(entity_truth)),
+                                list(itertools.chain.from_iterable(entity_predicted))   )
+        answer_type_acc = accuracy_score( list(itertools.chain.from_iterable(answer_type_truth)),
+                                list(itertools.chain.from_iterable(answer_type_predicted))   )
+        best_entity_acc.append(entity_acc)
+        
+        best_answer_type_acc.append(answer_type_acc)
+        
     f.close()
-    acc = max(best_acc)
-    return acc ,0,0,0
+    entity_acc = max(best_entity_acc)
+    answer_type_acc = max(best_answer_type_acc)
+    print('entity_acc:', entity_acc)
+    print('answer_type_acc:', answer_type_acc)
+    return entity_acc ,answer_type_acc,0, 0
 
 
 def valid_sentence_ordering_model(args, model, dev, field, dev_metrics , shuflle_times):

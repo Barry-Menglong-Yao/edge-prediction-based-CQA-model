@@ -88,12 +88,16 @@ class CqaNet(PointerNet):
         return batch_question_h
 
     def predict(self, src_and_len, doc_num, ewords_and_len, elocs):
-        e,_=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
+        entity_logics, answer_type_logics=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
         # entity_mask=self.gen_entity_mask( ewords_and_len[1],e)
         # e.masked_fill_(entity_mask , -1e9)
         m = nn.Softmax(dim=-1)
- 
-        classes_probability = m(e) 
-        predicted_labels = torch.argmax(classes_probability, axis=-1)
+        predicted_entity_labels=self.gen_predicted_labels(entity_logics,m)
+        predicted_answer_type_labels=self.gen_predicted_labels(answer_type_logics,m)
     
-        return predicted_labels      
+        return predicted_entity_labels   ,predicted_answer_type_labels   
+    
+    def gen_predicted_labels(self,logics,m):
+        classes_probability = m(logics) 
+        predicted_labels = torch.argmax(classes_probability, axis=-1)   
+        return predicted_labels

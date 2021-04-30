@@ -13,6 +13,7 @@ from model.graph_model import *
 from model.cqa_model import * 
 import itertools
 from sklearn.metrics import accuracy_score
+import logging
 
 def beam_search_pointer(args, model, src_and_len, doc_num, ewords_and_len, elocs):
     sentences, _, dec_init, keys,entity_h,_ = model.encode(src_and_len, doc_num,  ewords_and_len, elocs)

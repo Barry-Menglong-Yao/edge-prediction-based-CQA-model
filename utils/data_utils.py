@@ -430,6 +430,7 @@ class CoQADataset(Dataset):
 
         '''  
 
+
 if __name__=='__main__':
     from transformers import *
     #tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')

@@ -10,3 +10,6 @@ data/coqa/train_lower.txt
 data/coqa/train_type.txt
 .vscode/.ropeproject/config.py
 data/coqa/train_label.txt
+  
+data/coqa/not_only_noun/train_eg.txt
+data/coqa/not_only_noun/train_label.txt

@@ -116,6 +116,10 @@ def train(args, train_iter, dev, fields, checkpoint):
     test_real = DocIter(test_data, 1, device='cuda', batch_size_fn=None,
                         train=False, repeat=False, shuffle=False, sort=False)
 
+    fake_epc=-1
+    is_validate_before_train=True
+    validate(args,   dev,  checkpoint,model,DOC,fake_epc,best_score,best_iter,is_validate_before_train)
+
     for epc in range(args.maximum_steps):
         for iters, batch in enumerate(train_iter):
             model.train()
@@ -136,29 +140,9 @@ def train(args, train_iter, dev, fields, checkpoint):
         if epc < 5:
             continue
 
-        with torch.no_grad():
-            print('valid..............')
-            if args.loss:
-                entity_score = valid_model(args, model, dev, DOC, 'loss')
-                print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, entity_score, best_score))
-            else:
-                entity_acc ,answer_type_acc, ktau, _ = valid_model(args, model, dev, DOC)
-                print('epc:{}, val answer_type_acc:{:.4f} best:{:.4f} entity_acc :{:.2f} ktau:{:.4f}'.format(epc,
-                 answer_type_acc, best_score,entity_acc, ktau))
-
-            if answer_type_acc > best_score:
-                best_score = answer_type_acc
-                best_iter = epc
-
-                print('save best model at epc={}'.format(epc))
-                checkpoint = {'model': model.state_dict(),
-                              'args': args,
-                              'loss': best_score}
-                torch.save(checkpoint, '{}/{}.best.pt'.format(args.model_path, args.model))
-
-            if early_stop and (epc - best_iter) >= early_stop:
-                print('early stop at epc {}'.format(epc))
-                break
+        best_score,best_iter,is_early_stop=validate(args,   dev,  checkpoint,model,DOC,epc,best_score,best_iter,False)
+        if is_early_stop:
+            break
 
     print('\n*******Train Done********{}'.format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())))
     minutes = (time.time() - start) // 60
@@ -182,6 +166,36 @@ def train(args, train_iter, dev, fields, checkpoint):
             print('test entity_acc:{:.4%} answer_type_acc:{:.2%} ktau:{:.4f} pm:{:.2%}'.format(entity_acc, answer_type_acc, ktau, pm))
         
 
+
+def validate(args,   dev,  checkpoint,model,DOC,epc,best_score,best_iter,is_validate_before_train):
+    early_stop = args.early_stop
+    is_early_stop=False
+    with torch.no_grad():
+        print('valid..............')
+        if args.loss:
+            entity_score = valid_model(args, model, dev, DOC, 'loss')
+            print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, entity_score, best_score))
+        else:
+            entity_acc ,answer_type_acc, ktau, _ = valid_model(args, model, dev, DOC)
+            print('epc:{}, val answer_type_acc:{:.4f} best:{:.4f} entity_acc :{:.2f}  '.format(epc,
+                answer_type_acc, best_score,entity_acc ))
+
+        
+        if answer_type_acc > best_score:
+            best_score = answer_type_acc
+            best_iter = epc
+
+            if is_validate_before_train!=True:
+                print('save best model at epc={}'.format(epc))
+                checkpoint = {'model': model.state_dict(),
+                                'args': args,
+                                'loss': best_score}
+                torch.save(checkpoint, '{}/{}.best.pt'.format(args.model_path, args.model))
+
+        if early_stop and (epc - best_iter) >= early_stop:
+            print('early stop at epc {}'.format(epc))
+            is_early_stop=True
+    return best_score,best_iter,is_early_stop
 
 def valid_model(args, model, dev, field, dev_metrics=None, shuflle_times=1):
     model.eval()
@@ -220,6 +234,8 @@ def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
             predicted_entity_labels,predicted_answer_type_labels   = model.predict(dev_batch.doc, dev_batch.doc_len, dev_batch.e_words, dev_batch.elocs )
             entity_predicted.append(predicted_entity_labels.view(-1).tolist())
             answer_type_predicted.append(predicted_answer_type_labels.view(-1).tolist())
+            # check_prediction(j,predicted_answer_type_labels,predicted_entity_labels)
+
         entity_acc = accuracy_score( list(itertools.chain.from_iterable(entity_truth)),
                                 list(itertools.chain.from_iterable(entity_predicted))   )
         answer_type_acc = accuracy_score( list(itertools.chain.from_iterable(answer_type_truth)),
@@ -235,6 +251,13 @@ def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
     print('answer_type_acc:', answer_type_acc)
     return entity_acc ,answer_type_acc,0, 0
 
+
+def check_prediction(j,predicted_answer_type_labels,predicted_entity_labels):
+    if int(predicted_answer_type_labels)!=2:
+        print(f'in {j}, predict answer_type{int(predicted_answer_type_labels)}')
+    if predicted_entity_labels.squeeze().sum()>0:
+        print(f'in {j}, predict predicted_entity_labels{predicted_entity_labels.squeeze().tolist()}')
+    
 
 def valid_sentence_ordering_model(args, model, dev, field, dev_metrics , shuflle_times):
     f = open(args.writetrans, 'w')

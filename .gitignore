@@ -13,3 +13,7 @@ data/coqa/train_label.txt
   
 data/coqa/not_only_noun/train_eg.txt
 data/coqa/not_only_noun/train_label.txt
+data/coqa/dev/dev_type.txt
+data/coqa/dev/dev_label_new.txt
+data/coqa/dev/dev_eg_new.txt
+data/coqa/dev/dev_lower.txt

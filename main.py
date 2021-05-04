@@ -14,7 +14,7 @@ from model.seq2seq import train, decode
 from pathlib import Path
 import json
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]='3'
+
  
 
 def str2bool(v):
@@ -161,7 +161,7 @@ def parse_args():
     parser.add_argument('--main_path', type=str, default="./")
     parser.add_argument('--model_path', type=str, default="models")
     parser.add_argument('--decoding_path', type=str, default="decoding")
-
+    parser.add_argument('--gpu_list', type=str, default="3")
     return parser.parse_args()
 
 
@@ -311,4 +311,5 @@ if __name__ == '__main__':
     else:
         args = parse_args()
         print(args)
+        os.environ["CUDA_VISIBLE_DEVICES"]=args.gpu_list
         run_model(args)

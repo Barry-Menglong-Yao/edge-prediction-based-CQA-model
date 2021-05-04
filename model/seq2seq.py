@@ -15,6 +15,7 @@ import itertools
 from sklearn.metrics import accuracy_score
 import logging
 from datetime import datetime
+from sklearn.metrics import f1_score
 timestr=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 logging.basicConfig(level=logging.DEBUG,filename="log/training_"+timestr)
 
@@ -186,7 +187,7 @@ def validate(args,   dev,  checkpoint,model,DOC,epc,best_score,best_iter,is_vali
             logging.debug('epc:{}, val answer_type_acc:{:.4f} best:{:.4f} entity_acc :{:.2f}  '.format(epc,
                 answer_type_acc, best_score,entity_acc ))
         
-        if answer_type_acc > best_score:
+        if answer_type_acc > best_score  :
             best_score = answer_type_acc
             best_iter = epc
 
@@ -250,12 +251,29 @@ def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
         best_answer_type_acc.append(answer_type_acc)
         
     f.close()
+    
     entity_acc = max(best_entity_acc)
     answer_type_acc = max(best_answer_type_acc)
     print('entity_acc:', entity_acc)
     print('answer_type_acc:', answer_type_acc)
-    return entity_acc ,answer_type_acc,0, 0
+    gen_prediction_distribution(answer_type_predicted,entity_predicted)
 
+    entity_f1=f1_score(list(itertools.chain.from_iterable(entity_truth)),
+                                list(itertools.chain.from_iterable(entity_predicted))  , 
+                                average='macro')
+    answer_type_f1=f1_score(list(itertools.chain.from_iterable(answer_type_truth)),
+                                list(itertools.chain.from_iterable(answer_type_predicted))   , 
+                            average='macro')      
+    print('entity_f1:', entity_f1)
+    print('answer_type_f1:', answer_type_f1)              
+    return entity_f1 ,answer_type_f1,0, 0
+
+
+def gen_prediction_distribution( answer_type_truth,entity_predicted):
+    hist,_=np.histogram(list(itertools.chain.from_iterable(answer_type_truth)), bins=[0, 1, 2, 3,4])
+    hist2,_=np.histogram(list(itertools.chain.from_iterable(entity_predicted)), bins=[0, 1, 2])
+    logging.debug(f'answer type prediction distribution: {hist}, entity prediction distribution:{hist2}')
+        
 
 def check_prediction(j,predicted_answer_type_labels,predicted_entity_labels):
     if int(predicted_answer_type_labels)!=2:

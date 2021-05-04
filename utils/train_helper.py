@@ -14,7 +14,7 @@ def get_weights_transform_for_sample(num_of_classes,samples_per_class,b_labels):
 
 
 
-def get_weights_inverse_num_of_samples(num_of_classes,samples_per_class,power=0.5):
+def get_weights_inverse_num_of_samples(num_of_classes,samples_per_class,power=1):
     weights_for_samples=1.0/np.array(np.power(samples_per_class,power))
     weights_for_samples=weights_for_samples/np.sum(weights_for_samples)*num_of_classes
     weights_for_samples=torch.tensor(weights_for_samples, dtype=torch.float32,device=torch.device("cuda"))

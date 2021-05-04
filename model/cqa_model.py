@@ -37,10 +37,20 @@ class CqaNet(PointerNet):
         entity_loss=self.gen_loss(label_of_one_batch_and_len[0],entity_logics,True,ewords_and_len,entity_class_weight)
         answer_type_loss=self.gen_loss(answer_types,answer_type_logics,False,None,answer_type_class_weight)
         
-        loss=0.5 * torch.Tensor([entity_loss,answer_type_loss]) / self.multi_task_loss_weight**2
-        loss=loss.sum() + torch.log(self.multi_task_loss_weight.prod())
+         
+        loss=self.gen_multi_task_loss( entity_loss,answer_type_loss,False)
         return loss
         # return  entity_loss 
+
+
+    def gen_multi_task_loss(self,entity_loss,answer_type_loss,is_fixed_weight):
+        if is_fixed_weight:
+            fixed_weight=get_weights_inverse_num_of_samples(2,np.array([6874264,108647]))
+            loss=  entity_loss*fixed_weight[0]+answer_type_loss*fixed_weight[1]
+        else:
+            loss=0.5 * torch.stack((entity_loss,answer_type_loss)) / self.multi_task_loss_weight**2
+            loss=loss.sum() + torch.log(self.multi_task_loss_weight.prod())
+        return loss
 
     
 

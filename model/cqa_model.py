@@ -10,7 +10,7 @@ from model.generator import Beam
 from data.data import DocField, DocDataset, DocIter
 from utils.config import is_cqa_task
 from model.graph_model import * 
-
+from utils.train_helper import * 
 
 class CqaNet(PointerNet):
     def __init__(self, args):
@@ -25,22 +25,35 @@ class CqaNet(PointerNet):
         self.answer_type_paragraph_linear=nn.Linear(args.d_rnn, d_mlp)
         self.answer_type_question_linear=nn.Linear(args.d_rnn, d_mlp)
         self.answer_type_linear=nn.Linear(d_mlp, answer_type_class_num)
+        self.multi_task_loss_weight = nn.Parameter(torch.ones(2))
          
     def forward(self, src_and_len, tgt_and_len, doc_num, ewords_and_len, elocs,label_of_one_batch_and_len,answer_types):
         entity_logics, answer_type_logics=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
-        entity_loss=self.gen_loss(label_of_one_batch_and_len[0],entity_logics,True,ewords_and_len)
-        answer_type_loss=self.gen_loss(answer_types,answer_type_logics,False,None)
-        return (entity_loss+answer_type_loss)/2
+        
+        entity_class_weight =get_weights_inverse_num_of_samples(2,np.array([6770678,103586]))
+        answer_type_class_weight =get_weights_inverse_num_of_samples(4,np.array([10987,8448,87836,1376]))
+        # entity_class_weight = torch.tensor([1,50], dtype=torch.float32,device=torch.device("cuda"))
+        # answer_type_class_weight = torch.tensor([10,10,1,10], dtype=torch.float32,device=torch.device("cuda"))
+        entity_loss=self.gen_loss(label_of_one_batch_and_len[0],entity_logics,True,ewords_and_len,entity_class_weight)
+        answer_type_loss=self.gen_loss(answer_types,answer_type_logics,False,None,answer_type_class_weight)
+        
+        loss=0.5 * torch.Tensor([entity_loss,answer_type_loss]) / self.multi_task_loss_weight**2
+        loss=loss.sum() + torch.log(self.multi_task_loss_weight.prod())
+        return loss
+        # return  entity_loss 
 
-    def gen_loss(self,label_of_one_batch,logics,need_mask,ewords_and_len):
+    
+
+    def gen_loss(self,label_of_one_batch,logics,need_mask,ewords_and_len,class_weight):
         if need_mask:
             entity_mask=self.gen_entity_mask( ewords_and_len[1],logics)
             logics.masked_fill_(entity_mask , -1e9)
         
         logp = F.log_softmax(logics, dim=-1)
         logp = logp.view(-1, logp.size(-1))
-        
-        loss = self.critic(logp, label_of_one_batch.contiguous().view(-1))
+
+        loss_function = nn.NLLLoss(weight= class_weight )
+        loss = loss_function(logp, label_of_one_batch.contiguous().view(-1))
         loss = loss.sum()/label_of_one_batch.size(0)
         return loss
 
@@ -101,3 +114,5 @@ class CqaNet(PointerNet):
         classes_probability = m(logics) 
         predicted_labels = torch.argmax(classes_probability, axis=-1)   
         return predicted_labels
+
+

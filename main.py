@@ -45,16 +45,15 @@ def parse_args():
     # dataset settings
         
     # 1766
-    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt'])
-    # parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt'])
-    # parser.add_argument('--test', type=str, nargs='+', default=[ 'data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt'])
-    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt'])
-     
+    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt'])
+    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt'])
+    parser.add_argument('--test', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt'])
+          
 
     # all
-    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
-    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt'])
-    parser.add_argument('--test', type=str, nargs='+',  default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt' ])
+    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
+    # parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt'])
+    # parser.add_argument('--test', type=str, nargs='+',  default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt' ])
 
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
     

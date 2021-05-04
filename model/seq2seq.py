@@ -14,6 +14,10 @@ from model.cqa_model import *
 import itertools
 from sklearn.metrics import accuracy_score
 import logging
+from datetime import datetime
+timestr=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+logging.basicConfig(level=logging.DEBUG,filename="log/training_"+timestr)
+
 
 def beam_search_pointer(args, model, src_and_len, doc_num, ewords_and_len, elocs):
     sentences, _, dec_init, keys,entity_h,_ = model.encode(src_and_len, doc_num,  ewords_and_len, elocs)
@@ -118,7 +122,7 @@ def train(args, train_iter, dev, fields, checkpoint):
 
     fake_epc=-1
     is_validate_before_train=True
-    validate(args,   dev,  checkpoint,model,DOC,fake_epc,best_score,best_iter,is_validate_before_train)
+    # validate(args,   dev,  checkpoint,model,DOC,fake_epc,best_score,best_iter,is_validate_before_train)
 
     for epc in range(args.maximum_steps):
         for iters, batch in enumerate(train_iter):
@@ -179,7 +183,8 @@ def validate(args,   dev,  checkpoint,model,DOC,epc,best_score,best_iter,is_vali
             entity_acc ,answer_type_acc, ktau, _ = valid_model(args, model, dev, DOC)
             print('epc:{}, val answer_type_acc:{:.4f} best:{:.4f} entity_acc :{:.2f}  '.format(epc,
                 answer_type_acc, best_score,entity_acc ))
-
+            logging.debug('epc:{}, val answer_type_acc:{:.4f} best:{:.4f} entity_acc :{:.2f}  '.format(epc,
+                answer_type_acc, best_score,entity_acc ))
         
         if answer_type_acc > best_score:
             best_score = answer_type_acc
@@ -255,8 +260,10 @@ def valid_cqa_model(args, model, dev, field, dev_metrics , shuflle_times):
 def check_prediction(j,predicted_answer_type_labels,predicted_entity_labels):
     if int(predicted_answer_type_labels)!=2:
         print(f'in {j}, predict answer_type{int(predicted_answer_type_labels)}')
+        logging.debug(f'in {j}, predict answer_type{int(predicted_answer_type_labels)}')
     if predicted_entity_labels.squeeze().sum()>0:
         print(f'in {j}, predict predicted_entity_labels{predicted_entity_labels.squeeze().tolist()}')
+        logging.debug(f'in {j}, predict predicted_entity_labels{predicted_entity_labels.squeeze().tolist()}')
     
 
 def valid_sentence_ordering_model(args, model, dev, field, dev_metrics , shuflle_times):

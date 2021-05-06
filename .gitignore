@@ -30,3 +30,9 @@ log/training_2021-05-04 01:56:10.740
 log/training_164206
 log/training_164357.%f
 log/*
+models/gdp0.5_gl2.coqa_best.pt
+models/saved/gdp0.5_gl2.best.pt
+models/saved/gdp0.5_gl2.coqa_best.pt
+data/coqa/300/dev_eval.txt
+data/coqa/dev/coqa-dev-v1.0.json
+data/coqa/dev/dev_eval.txt

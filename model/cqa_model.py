@@ -112,8 +112,6 @@ class CqaNet(PointerNet):
 
     def predict(self, src_and_len, doc_num, ewords_and_len, elocs):
         entity_logics, answer_type_logics=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
-        # entity_mask=self.gen_entity_mask( ewords_and_len[1],e)
-        # e.masked_fill_(entity_mask , -1e9)
         m = nn.Softmax(dim=-1)
         predicted_entity_labels=self.gen_predicted_labels(entity_logics,m)
         predicted_answer_type_labels=self.gen_predicted_labels(answer_type_logics,m)
@@ -126,3 +124,42 @@ class CqaNet(PointerNet):
         return predicted_labels
 
 
+    def predict_coqa_answer(self, src_and_len, doc_num, ewords_and_len, elocs,ewords_str,paragraph_id_list,turn_id_list):
+        entity_logics, answer_type_logics=self.gen_logics(src_and_len,doc_num,ewords_and_len,elocs)
+        m = nn.Softmax(dim=-1)
+        predicted_entity_labels=self.gen_predicted_labels(entity_logics,m)
+        predicted_answer_type_labels=self.gen_predicted_labels(answer_type_logics,m)
+
+        answer,answer_json_array=self.gen_coqa_answer(predicted_entity_labels,predicted_answer_type_labels,ewords_str,paragraph_id_list,turn_id_list)
+        
+        
+        return predicted_entity_labels   ,predicted_answer_type_labels    ,answer,answer_json_array
+        
+    def gen_coqa_answer(self,predicted_entity_labels,predicted_answer_type_labels,ewords_str,paragraph_id_list,turn_id_list):
+        coqa_predictions = []
+        answer_json_array=[]
+        for i, (answer_type,entity,entity_name,paragraph_id,turn_id) in enumerate(zip(predicted_answer_type_labels, predicted_entity_labels,ewords_str,paragraph_id_list,turn_id_list)):
+            answer_type=int(answer_type)
+            if answer_type==0:
+                prediction="YES"
+            elif answer_type==1:
+                prediction="NO"
+            elif answer_type==3:
+                prediction="UNKNOWN"
+            else:
+                prediction=predict_by_entity(entity.cpu().numpy(),entity_name)
+            answer_json={"id":paragraph_id ,"turn_id":turn_id ,"answer":prediction}
+            answer_json_array.append(answer_json)
+            coqa_predictions.append(prediction)
+ 
+        return coqa_predictions,answer_json_array
+
+def predict_by_entity(entity,ewords_str):
+    entity_list=np.where(entity==1,ewords_str,"")
+    entity_str=" ".join(entity_list).strip()
+    if len(entity_str)>0:
+        return entity_str 
+    else:
+        return "YES"
+
+     

@@ -48,24 +48,38 @@ class DocDataset(data.Dataset):
     def __init__(self, path, text_field, order_field, graph_field,
                  encoding='utf-8', **kwargs):
         fields = [('doc', text_field), ('order', order_field), ('entity', graph_field),('label',order_field), 
-        ('answer_type', order_field)]
+        ('answer_type', order_field),('question_id', graph_field)]
         examples = []
-        path, einspath,label_path,answer_type_path = path
-        with open(path, 'r', encoding=encoding) as f, open(einspath, 'r') as fe,open(label_path,'r') as lable_f,open(answer_type_path,'r') as answer_type_f:
-            for line, lineeins,lables,answer_type  in zip(f, fe,lable_f,answer_type_f):
-                line = line.strip()
-                order = list(range(line.count('<eos>') + 1))
-                if 'train' in path:
-                    if len(order) > 1:
+        path, einspath,label_path,answer_type_path,turn_id_path = path
+        if turn_id_path is None:
+            with open(path, 'r', encoding=encoding) as f, open(einspath, 'r') as fe,open(label_path,'r') as lable_f,open(answer_type_path,'r') as answer_type_f:
+                for line, lineeins,lables,answer_type  in zip(f, fe,lable_f,answer_type_f):
+                    line = line.strip()
+                    order = list(range(line.count('<eos>') + 1))
+                    if 'train' in path:
+                        if len(order) > 1:
+                            examples.append(data.Example.fromlist([line, order, lineeins,lables,answer_type], fields))
+                    else:
                         examples.append(data.Example.fromlist([line, order, lineeins,lables,answer_type], fields))
-                else:
-                    examples.append(data.Example.fromlist([line, order, lineeins,lables,answer_type], fields))
-
+        else:
+           with open(path, 'r', encoding=encoding) as f, open(einspath, 'r') as fe,open(label_path,'r') as lable_f,open(answer_type_path,'r') as answer_type_f,open(turn_id_path,'r') as turn_id_f:
+                for line, lineeins,lables,answer_type,question_id  in zip(f, fe,lable_f,answer_type_f,turn_id_f):
+                    line = line.strip()
+                    question_id=question_id.strip()
+                    order = list(range(line.count('<eos>') + 1))
+                    if 'train' in path:
+                        if len(order) > 1:
+                            examples.append(data.Example.fromlist([line, order, lineeins,lables,answer_type,question_id], fields))
+                    else:
+                        examples.append(data.Example.fromlist([line, order, lineeins,lables,answer_type,question_id], fields))
+ 
         super(DocDataset, self).__init__(examples, fields, **kwargs)
 
 
 class MyBatch(Batch):
-    def __init__(self, allsentences, orders, doc_len, ewords, elocs,label_list, answer_type_list,dataset=None,
+    def __init__(self, allsentences, orders, doc_len, ewords, elocs,label_list,
+     answer_type_list,paragraph_id_list,turn_id_list,
+    dataset=None,
                  device=None):
         """Create a Batch from a list of examples."""
         if data is not None:
@@ -82,12 +96,13 @@ class MyBatch(Batch):
 
             setattr(self, 'order', dataset.fields['order'].process(orders, device=device))
             setattr(self, 'doc', dataset.fields['doc'].process(allsentences, device=device))
-
+            setattr(self, 'e_words_str', ewords)
             setattr(self, 'e_words', dataset.fields['doc'].process(ewords, device=device))
-
+            
             setattr(self, 'answer_types', torch.cuda.LongTensor(answer_type_list, device=device))
             setattr(self, 'labels', dataset.fields['order'].process(label_list, device=device))
-            
+            setattr(self, 'paragraph_ids', paragraph_id_list)
+            setattr(self, 'turn_ids', turn_id_list)
             # setattr(self, 'docwords', dataset.fields['doc'].process(doc_words, device=device))
             # setattr(self, 'graph', dataset.fields['e2e'].process_graph(e2ebatch, e2sbatch, orders,
             #                                                            doc_sent_word_len, device=device))
@@ -130,6 +145,8 @@ class DocIter(data.BucketIterator):
                 elocs = []
                 label_list = []
                 answer_type_list=[]
+                paragraph_id_list=[]
+                turn_id_list=[]
                 for ex in minibatch:
                     doc, order = ex.doc, ex.order
 
@@ -156,12 +173,7 @@ class DocIter(data.BucketIterator):
                     target = sforder
 
                     for eandloc in eg.split():
-                        #TODO 
-                        if eandloc.startswith("::"):
-                            e=":"
-                            _, loc_role = eandloc.split('::')
-                        else:
-                            e, loc_role = eandloc.split(':')
+                        e, loc_role = eandloc.split(':')
                         ew.append(e)
                         word_newlocs=gen_loc_role_in_new_order( loc_role,target)
                         newlocs.append(word_newlocs)
@@ -174,12 +186,20 @@ class DocIter(data.BucketIterator):
                     label_list.append(label_list_of_one_text)
                     answer_type_list.append(int(ex.answer_type[0]))
 
-
-                yield MyBatch(allsentences, orders, doc_len, ewords, elocs,label_list,answer_type_list,
+                    if "question_id" in ex.__dict__.keys():
+                        paragraph_id, turn_id = ex.question_id.split(':')
+                        paragraph_id_list.append(paragraph_id)
+                        turn_id_list.append(turn_id)
+                    
+                yield MyBatch(allsentences, orders, doc_len, ewords, elocs,label_list,answer_type_list,paragraph_id_list,turn_id_list,
                               self.dataset, self.device)
             if not self.repeat:
                 return
 
+
+def gen_question_id(example):
+    
+    return 
 
 def gen_loc_role_in_new_order( loc_role,target):
     word_newlocs = []

@@ -43,17 +43,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
     # coqa_parser(parser)
     # dataset settings
-        
+    parser.add_argument('--gpu_list', type=str, default="2")   
     # 1766
-    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt'])
-    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt'])
-    parser.add_argument('--test', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt'])
+    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt',None])
+    # parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt','data/coqa/300/dev_eval.txt'])
+    # parser.add_argument('--test', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt','data/coqa/300/dev_eval.txt'])
           
 
     # all
-    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt'])
-    # parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt'])
-    # parser.add_argument('--test', type=str, nargs='+',  default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt' ])
+    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt',None])
+    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt','data/coqa/dev/dev_eval.txt'])
+    parser.add_argument('--test', type=str, nargs='+',  default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt' ,'data/coqa/dev/dev_eval.txt'])
 
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
     
@@ -108,7 +108,7 @@ def parse_args():
     parser.add_argument('--ehid', default=150, type=int)
 
     parser.add_argument('--initnn', default='standard', help='parameter init')
-    parser.add_argument('--early_stop', type=int, default=5)
+    parser.add_argument('--early_stop', type=int, default=10)
 
     # running setting
     parser.add_argument('--mode', type=str, default='train',
@@ -161,7 +161,7 @@ def parse_args():
     parser.add_argument('--main_path', type=str, default="./")
     parser.add_argument('--model_path', type=str, default="models")
     parser.add_argument('--decoding_path', type=str, default="decoding")
-    parser.add_argument('--gpu_list', type=str, default="3")
+    
     return parser.parse_args()
 
 

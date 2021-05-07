@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a Transformer / FastTransformer.')
     # coqa_parser(parser)
     # dataset settings
-    parser.add_argument('--gpu_list', type=str, default="2")   
+    parser.add_argument('--gpu_list', type=str, default="3")   
     # 1766
     # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt',None])
     # parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt','data/coqa/300/dev_eval.txt'])
@@ -153,6 +153,7 @@ def parse_args():
 
     
     # model saving/reloading, output translations
+    #default=["models/saved/gdp0.5_gl2"]
     parser.add_argument('--load_from', nargs='+', default=None, help='load from 1.modelname, 2.lastnumber, 3.number')
 
     parser.add_argument('--resume', action='store_true',
@@ -255,7 +256,7 @@ def run_model(args):
         train(args, train_real, dev_real, (DOC, ORDER, GRAPH), checkpoint)
     else:
         if len(args.load_from) == 1:
-            load_from = '{}.best.pt'.format(args.load_from[0])
+            load_from = '{}.coqa_best.pt'.format(args.load_from[0])
             print('{} load the best checkpoint from {}'.format(curtime(), load_from))
             checkpoint = torch.load(load_from, map_location='cpu')
         else:

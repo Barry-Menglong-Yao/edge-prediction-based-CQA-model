@@ -126,9 +126,10 @@ def train(args, train_iter, dev, fields, checkpoint):
                         train=False, repeat=False, shuffle=False, sort=False)
 
     fake_epc=-1
-    is_validate_before_train=True
+    is_validate_before_train=False
     timer=Timer()
-    # validate(args,   dev,  checkpoint,model,DOC,fake_epc,best_answer_type_score,best_iter,is_validate_before_train,best_entity_score,timer)
+    if is_validate_before_train:
+        validate(args,   dev,  checkpoint,model,DOC,fake_epc,best_answer_type_score,best_iter,is_validate_before_train,best_entity_score,timer)
     
     
     for epc in range(args.maximum_steps):
@@ -181,7 +182,7 @@ def train(args, train_iter, dev, fields, checkpoint):
 
 def remaining_time(timer,epc,best_epc, args):
     
-    remaining_time_str=f'remaining time:{timer.remains(args.early_stop+best_epc,epc)} or {timer.remains(args.maximum_steps,epc)}'
+    remaining_time_str=f'{timer.remains(args.early_stop+best_epc,epc)} or {timer.remains(args.maximum_steps,epc)}'
     return remaining_time_str
 
 def validate(args,   dev,  checkpoint,model,DOC,epc,best_score,best_iter,
@@ -196,12 +197,11 @@ is_validate_before_train,best_entity_score,timer):
             print('epc:{}, loss:{:.2f} best:{:.2f}\n'.format(epc, entity_score, best_score))
         else:
             entity_acc ,answer_type_acc, overall_coqa_f1, _ = valid_model(args, model, dev, DOC)
-            print( f'epc:{epc},val f1:  answer_type :{answer_type_acc} answer_type_best:{best_score} entity  :{entity_acc} entity_best  :{best_entity_score}, remain time:{remaining_time(timer,epc,best_iter, args)} '   )
-            logging.debug('epc:{},val f1:  answer_type :{:.4f} answer_type_best:{:.4f} entity  :{:.4f} entity_best  :{:.4f}  '.format(epc,
-                answer_type_acc, best_score,entity_acc,best_entity_score ))
+            print( f'epc:{epc}, val f1: overall_coqa_f1:{overall_coqa_f1},  answer_type :{answer_type_acc}, answer_type_best:{best_score}, entity:{entity_acc}, entity_best:{best_entity_score}, {remaining_time(timer,epc,best_iter, args)} '   )
+            logging.debug(f'epc:{epc}, val f1: overall_coqa_f1:{overall_coqa_f1},  answer_type :{answer_type_acc}, answer_type_best:{best_score}, entity:{entity_acc}, entity_best:{best_entity_score}, {remaining_time(timer,epc,best_iter, args)} ' )
         if is_validate_by_coqa_f1:
             best_score,best_iter=check_coqa_f1(overall_coqa_f1, best_score,best_iter,epc,model,args,is_validate_before_train)
-            best_entity_score=None
+             
         else:
             best_score,best_entity_score,best_iter=check_f1(answer_type_acc,entity_acc,best_score,best_entity_score,is_validate_before_train,epc,model,args)
         if early_stop and (epc - best_iter) >= early_stop:
@@ -217,7 +217,7 @@ def check_f1(answer_type_acc,entity_acc,best_score,best_entity_score,is_validate
         best_iter = epc
 
         if is_validate_before_train!=True:
-            print('save best model at epc={}'.format(epc))
+            print('save best model best.pt at epc={}'.format(epc))
             checkpoint = {'model': model.state_dict(),
                             'args': args,
                             'loss': best_score}
@@ -227,7 +227,7 @@ def check_f1(answer_type_acc,entity_acc,best_score,best_entity_score,is_validate
         best_iter = epc
 
         if is_validate_before_train!=True:
-            print('save best model at epc={}'.format(epc))
+            print('save best model answer_type_best.pt at epc={}'.format(epc))
             checkpoint = {'model': model.state_dict(),
                             'args': args,
                             'loss': best_score}
@@ -237,7 +237,7 @@ def check_f1(answer_type_acc,entity_acc,best_score,best_entity_score,is_validate
         best_iter = epc
 
         if is_validate_before_train!=True:
-            print('save best model at epc={}'.format(epc))
+            print('save best model entity_best.pt at epc={}'.format(epc))
             checkpoint = {'model': model.state_dict(),
                             'args': args,
                             'loss': best_entity_score}
@@ -252,7 +252,7 @@ def check_coqa_f1(coqa_f1, best_coqa_f1,best_iter,epc,model,args,is_validate_bef
         best_iter = epc
 
         if is_validate_before_train!=True:
-            print('save best model at epc={}'.format(epc))
+            print('save best model coqa_best.pt at epc={}'.format(epc))
             checkpoint = {'model': model.state_dict(),
                             'args': args,
                             'loss': best_coqa_f1}
@@ -437,13 +437,16 @@ def valid_sentence_ordering_model(args, model, dev, field, dev_metrics , shuflle
 
 def decode(args, test_real, fields, checkpoint):
     with torch.no_grad():
-        model = PointerNet(args)
+        if is_cqa_task():
+            model = CqaNet(args)
+        else:
+            model = PointerNet(args)
         model.cuda()
 
         print('load parameters')
         model.load_state_dict(checkpoint['model'])
         DOC, ORDER = fields
-        acc, pmr, ktau, _ = valid_model(args, model, test_real, DOC)
-        print('test acc:{:.2%} pmr:{:.2%} ktau:{:.2f}'.format(acc, pmr, ktau))
+        entity_acc ,answer_type_acc, overall_coqa_f1, _ =  valid_model(args, model, test_real, DOC)
+        print('test entity_acc:{:.2%} answer_type_acc:{:.2%} overall_coqa_f1:{:.2f}'.format(entity_acc, answer_type_acc, overall_coqa_f1))
 
 

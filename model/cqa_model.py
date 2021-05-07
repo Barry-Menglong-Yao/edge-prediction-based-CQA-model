@@ -148,7 +148,7 @@ class CqaNet(PointerNet):
                 prediction="UNKNOWN"
             else:
                 prediction=predict_by_entity(entity.cpu().numpy(),entity_name)
-            answer_json={"id":paragraph_id ,"turn_id":turn_id ,"answer":prediction}
+            answer_json={"id":paragraph_id ,"turn_id":int(turn_id) ,"answer":prediction}
             answer_json_array.append(answer_json)
             coqa_predictions.append(prediction)
  

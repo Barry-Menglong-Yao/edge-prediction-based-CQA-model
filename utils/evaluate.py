@@ -174,6 +174,7 @@ class CoQAEvaluator():
 
     def model_performance(self, pred_data):
         exact_scores, f1_scores = self.get_raw_scores(pred_data)
+        #TODO save  exact_scores, f1_scores  to files
         return self.get_domain_scores(exact_scores, f1_scores)
 
     def get_domain_scores(self, exact_scores, f1_scores):
@@ -253,6 +254,9 @@ def main():
         print(json.dumps(evaluator.model_performance(pred_data), indent=2))
 
 def test_coqa_acc(pred_json):
+    answer_filename='output/answers.json'
+    with open(answer_filename, 'w') as outfile:
+        json.dump(pred_json, outfile)
     data_file="data/coqa/dev/coqa-dev-v1.0.json"
     evaluator = CoQAEvaluator( data_file)
     pred_data = CoQAEvaluator.preds_in_memory_to_dict(pred_json) 

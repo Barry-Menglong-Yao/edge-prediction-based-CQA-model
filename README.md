@@ -1,31 +1,37 @@
 # edge-prediction-based-CQA-model
+    1) How to run code:
+        0, install the required packages in requirement.txt
+        1, do the preprocessing. Check the following section 2) for details.
+        2, put the obtained input file in data directory. Their path and name should be the following ones.
+            data/coqa/train_eg.txt
+            data/coqa/train_label.txt
+            data/coqa/train_lower.txt
+            data/coqa/train_type.txt
+            data/coqa/dev/dev_eg_new.txt
+            data/coqa/dev/dev_label_new.txt
+            data/coqa/dev/lower.txt
+            data/coqa/dev/dev_type.txt
+            data/coqa/dev/dev_eval.txt
+        3, put the coqa-dev-v1.0.json in data/coqa/dev directory. It is from CoQA website.
+        4, run "python main.py". It will train. After training, it will test and give the final test result.
 
+
+    2) How to do the preprocessing:
+        #TODO by Jakir
 
 
 
    
     
-    Directory structure:
-    layers:
-        encoder: the encoding layer. 
-            Input: paragraph, conversation history, current question.
-            output: paragraph, conversation history, current question with embeddings of each words
-        reasoner: the reasoning layer.
-            Input: the output of encoder layer
-            output: evidence with embeddings of each words
-        predicter: the prediction layer.
-            Input: the output of reasoner layer
-            output: answer (answer type, start position, end position)
-        interface: define the output of each layer
-    models: 
-        the models class we use like BERT and our proposed model. 
-        proposed_model.py will call functions of layer.py
-    trainer.py:
-        do the training, evaluation, testing in the minibatch.
-        call proposed_model.py
+    3)Directory structure:
     main.py: 
         read args from cmd and start the process 
-        call the trainer.py
+        call the seq2seq.py
+    model/seq2seq.py:
+        do the training, evaluation, testing in the minibatch.
+        call model/cqa_model.py
+    model: 
+        the models class we use like BERT and our proposed model cqa_model.py  
     utils:
         the common utils used by multi layers or the whole model
     config.py:
@@ -34,8 +40,10 @@
         data
     log:
         log 
-    model:
+    models:
         trained model parameters. save them here.
+    output:
+        other output like prediction.json
     requirement.txt:
         required packages
 

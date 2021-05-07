@@ -1,5 +1,7 @@
 # edge-prediction-based-CQA-model
-    1)Directory structure:
+
+## Directory structure:
+
     main.py: 
         read args from cmd and start the process 
         call the seq2seq.py
@@ -22,8 +24,20 @@
         other output like prediction.json
     requirement.txt:
         required packages
-    
-    2) How to run code:
+## Requirements
+```bash
+python == 3.6
+pytorch == 1.5.0 
+```     
+## Dataset:
+The dataset can be downloaded from [here](https://stanfordnlp.github.io/coqa/). Or you can download using the below command,
+ ```bash
+  mkdir data
+  wget -P data https://nlp.stanford.edu/data/coqa/coqa-train-v1.0.json
+  wget -P data https://nlp.stanford.edu/data/coqa/coqa-dev-v1.0.json
+```
+The dataset needs to be preprocessed to make them usable for our model   
+## How to run code:
         0, install the required packages in requirement.txt
         1, do the preprocessing. Check the following section 3) for details.
         2, put the obtained input file in data directory. Their path and name should be the following ones.
@@ -39,9 +53,10 @@
         3, put the coqa-dev-v1.0.json in data/coqa/dev directory. It is from CoQA website.
         4, run "python main.py". It will train. After training, it will test and give the final test result.
 
-
-    3) How to do the preprocessing:
-        #TODO by Jakir
+## How to do the preprocessing:
+        1, Put the coqa-train-v1.0.json and coqa-dev-v1.0.json in data directory
+        2, Set is_preprocessing = True and run main.py for preprocessing
+        3, To use Bert embedding instead of GloVe call bert_embedding(params) in CoQADataset init.
 
 
 

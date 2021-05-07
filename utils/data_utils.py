@@ -17,18 +17,30 @@ import torch
 import re
 from spacy.symbols import nsubj, VERB, dobj
 
-
+# Destination name of each type of trainable file
 WORD_EMBEDDING_FILE_NAME = "data/bert_word_embedding.pt"
 WORD_ID_FILE_NAME = "data/bert_word_id.pt"
+
 TRAIN_LOWER_FILE_NAME = "data/train_lower.txt"
 TRAIN_EG_FILE_NAME = "data/train_eg.txt"
-TRAIN_LABEL_FILE_NAME = "data/coqa/test/train_label.txt"
+TRAIN_LABEL_FILE_NAME = "data/train_label.txt"
 TRAIN_TYPE_FILE_NAME = "data/train_type.txt"
+TRAIN_EVAL_FILE_NAME = "data/train/train_eval.txt"
+
+NEW_TRAIN_EG_FILE_NAME = "data/train_eg_new.txt"
+NEW_TRAIN_LABEL_FILE_NAME = "data/train_label_new.txt"
+
+DEV_LOWER_FILE_NAME = "data/dev/dev_lower.txt"
+DEV_EG_FILE_NAME = "data/dev/dev_eg.txt"
+DEV_LABEL_FILE_NAME = "data/dev/dev_label.txt"
+DEV_TYPE_FILE_NAME = "data/dev/dev_type.txt"
+DEV_EVAL_FILE_NAME = "data/dev/dev_eval.txt"
 
 
+NEW_DEV_EG_FILE_NAME = "data/dev/dev_eg_new.txt"
+NEW_DEV_LABEL_FILE_NAME = "data/dev/dev_label_new.txt"
 
-
-
+# store each word to corresponding word id and embedding
 word_id = {}
 word_embedding = {}
 
@@ -41,6 +53,8 @@ websites = "[.](com|net|org|io|gov)"
 
 def findWholeWord(w):
     return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
+
+# split each context into multiple sentence
 def split_into_sentences(text):
     text = " " + text + "  "
     text = text.replace("\n"," ")
@@ -67,6 +81,7 @@ def split_into_sentences(text):
     sentences = [s.strip() for s in sentences]
     return sentences
 
+# Prepare and save all type of trainable dataset
 def prepare_datasets(config, tokenizer_model):
     print("Prepare dataset begin")
     tokenizer = []
@@ -105,6 +120,8 @@ def preprocess(text):
     for t in doc:
         tokens.append(t.text)
     return tokens
+
+# Get embedding of a sentence using BERT    
 def get_embedding(model, tokenizer, sentence):
     tokenized_text = tokenizer.tokenize(sentence)
     # Map the token strings to their vocabulary indeces.
@@ -123,7 +140,92 @@ def get_embedding(model, tokenizer, sentence):
       word_embedding[tup[0]] = tup[2]
     return word_embed
 
-def get_train_eg(train_low, nlp):
+# Generate and save file 
+def bert_embedding(dataset, model, tokenizer):
+
+    paragraphs = []
+    unique_word = {"a"}
+    global word_embedding, word_id
+    paragraphs_sentences = [[] for i in range(60000)]
+    paragraphs_questions = [[] for i in range(60000)]
+    paragraphs_answers = [[] for i in range(60000)]
+    cnt = 0
+    paragraph_id = -1
+    # Put the model in "evaluation" mode,meaning feed-forward operation.
+    model.eval()
+    for paragraph in tqdm(dataset['data']):
+      context = paragraph['context']
+      #break
+
+      print(paragraph['annotated_context'])
+
+      paragraph_id += 1
+      paragraphs.append(context)
+      words = context.split()
+      for word in words:
+        unique_word.add(word)
+      #continue
+
+      sentence_list = split_into_sentences(context)
+      for sentence in sentence_list:
+        sentence = "[CLS] " + sentence + " [SEP]"
+        paragraphs_sentences[paragraph_id].append(sentence)
+        sentence_embedding = get_embedding(model, tokenizer, sentence)
+
+      #question_answer = paragraph['qas']
+      for qas in paragraph['qas']:
+        question = qas['question']
+        answer = qas['answer']
+        paragraphs_questions[paragraph_id].append(question)
+        paragraphs_answers[paragraph_id].append(answer)
+
+        words = question.split()
+        for word in words:
+          unique_word.add(word)
+        words = answer.split()
+        for word in words:
+          unique_word.add(word)  
+
+        question_embedding = get_embedding(model, tokenizer, question)
+        answer_embedding = get_embedding(model, tokenizer, answer)
+
+        #print('qas.  ', question, answer)  
+    print("Embedding done.  && LEN of unique word  ", len(unique_word))
+
+    if os.path.isfile(WORD_EMBEDDING_FILE_NAME):
+      word_id = torch.load(WORD_ID_FILE_NAME)
+      word_embedding = torch.load(WORD_EMBEDDING_FILE_NAME)
+      print("Number of total word  >>>>>>>>>. ", len(word_embedding))
+
+    count = 0
+    sentence = "[CLS]"
+    for word in iter(unique_word):
+      count = count + 1
+      if count % 4000 == 0:
+        print("Total and percentage. ", count, (count*100)/len(unique_word))
+        #break
+      if count % 150 == 0:
+        sentence += " [SEP]"
+        get_embedding(model, tokenizer, sentence)
+        sentence = "[CLS]"
+
+      sentence += " " + word  
+
+    torch.save(word_embedding, WORD_EMBEDDING_FILE_NAME)   
+    torch.save(word_id, WORD_ID_FILE_NAME)   
+
+    # example to get embedding. Comment out next couple of line to get the word embedding of a sentence(test_sentence)
+    '''
+    test_sentence = "This is a test sentence."
+    test_sentence = "CLS" + test_sentence + "SEP"
+    tokenized_text = tokenizer.tokenize(sentence)
+    for word in tokenized_text:
+      word_embed = word_embedding[word]
+      print("Word and embedding", word, word_embed)
+    '''      
+
+# Prepare eg content. Example of eg file is given in /data/coqa/example/train.eg
+def get_eg(train_low, nlp):
     
     SUBJECTS = ["nsubj", "nsubjpass", "csubj", "csubjpass", "agent", "expl"]
     OBJECTS = ["dobj", "dative", "attr", "oprd"]
@@ -141,7 +243,7 @@ def get_train_eg(train_low, nlp):
     unique_word ={""}
     for token in doc:
       unique_word.add(token.text)
-      if token.text == '.':
+      if token.text == 'eos':
         cnt+=1
       if token.text not in SOV:
         SOV[token.text] = ""
@@ -170,8 +272,8 @@ def get_train_eg(train_low, nlp):
     #print(str1)
     return str1
 
-
-def prepare_train_lower(dataset):
+#Prepare lower file. Example of lower file is given in /data/coqa/example/train.lower
+def prepare_lower(LOWER_FILE_NAME, EG_FILE_NAME, dataset):
     #dataset = read_json(filename)
     nlp = spacy.load('en_core_web_sm')
     train_lower_list = []
@@ -205,15 +307,15 @@ def prepare_train_lower(dataset):
           #break
 
     #torch.save(train_lower_str, TRAIN_LOWER_FILE_NAME)
-    f = open(TRAIN_LOWER_FILE_NAME, "w")
+    f = open(LOWER_FILE_NAME, "w")
     f.write(train_lower_str)
     f.close()       
 
     total_len = train_lower_str.count('\n')
     print("Train lower done.  ", total_len)
-    cnt = 0
+    cnt = 1
     for line in train_lower_str.split('\n'):
-      train_eg = get_train_eg(line, nlp)
+      train_eg = get_eg(line, nlp)
       train_eg_str += train_eg + '\n'
       #'''
       if cnt % 100 == 0:
@@ -224,12 +326,13 @@ def prepare_train_lower(dataset):
       #'''
     print("Train eg done.  ", train_eg_str.count('\n'), cnt)
 
-    f = open(TRAIN_EG_FILE_NAME, "w")
+    f = open(EG_FILE_NAME, "w")
     f.write(train_eg_str)
     f.close() 
     #torch.save(train_eg_str, TRAIN_EG_FILE_NAME)  
 
-def prepare_train_label(dataset):
+#Prepare label file. Example of label file is given in /data/coqa/example/train.label
+def prepare_label(LABEL_FILE_NAME, dataset):
     nlp = spacy.load('en_core_web_sm')
     train_label_str = ""
     for paragraph in tqdm(dataset['data']):
@@ -275,16 +378,18 @@ def prepare_train_label(dataset):
 
             for key, value in ENTITY.items():
               entity_label += value + " "
-            print("len ====.   ", entity_label.count(" "), entity_label)  
+            entity_label = entity_label[:-1]  
+            #print("len ====.   ", entity_label.count(" "), entity_label)  
             train_label_str += entity_label + '\n'
           
     
           #break          
-    f = open(TRAIN_LABEL_FILE_NAME, "w")
+    f = open(LABEL_FILE_NAME, "w")
     f.write(train_label_str)
     f.close() 
 
-def prepare_train_type(dataset):
+#Prepare type file. Example of type file is given in /data/coqa/example/train.type
+def prepare_type(TYPE_FILE_NAME, dataset):
     nlp = spacy.load('en_core_web_sm')
     train_type_str = ""
     for paragraph in tqdm(dataset['data']):
@@ -318,118 +423,119 @@ def prepare_train_type(dataset):
           #break
       
 
-    f = open(TRAIN_TYPE_FILE_NAME, "w")
+    f = open(TYPE_FILE_NAME, "w")
     f.write(train_type_str)
-    f.close() 
+    f.close()
+
+def verify(EG_FILE_NAME, LABEL_FILE_NAME):
+  f = open(EG_FILE_NAME, "r")
+  f1 = open(LABEL_FILE_NAME, "r")
+
+  cnt = 0
+  #'''
+  for a,b in zip(f, f1):
+    cnt += 1
+    if a.count(":") != b.count(" "):
+      print(cnt, a.count(":"), b.count(" "), a)
+  #'''
+  print("Checking done.  ")
+
+def generate_new(EG_FILE_NAME, LABEL_FILE_NAME, NEW_EG_FILE_NAME, NEW_LABEL_FILE_NAME):
+  f = open(EG_FILE_NAME, "r")
+  f1 = open(LABEL_FILE_NAME, "r")
+
+  cnt = 0
+  train_eg_str = "" 
+  train_label_str = ""
+  for a,b in zip(f, f1):
+      entity_list = a.split()
+      label_list = b.split()
+      entity_sentence = ""
+      label_sentence = ""
+      for entity, label in zip(entity_list, label_list):
+        entity_str = ""
+        label_str = ""
+        #print(entity)
+        if entity.count(":") == 1:
+          entity_str += entity + " "
+          label_str+= label + " "
+        entity_sentence += entity_str 
+        label_sentence += label_str 
+      cnt +=1
+      train_eg_str += entity_sentence + "\n"
+      train_label_str += label_sentence + "\n"
+
+      #if a.count(" ") != b.count(" "):
+      #print(cnt, a.count(" "), b.count(" "), len(entity_list), entity_sentence.count(" "), a.count(":"), entity_sentence.count(":"))
+  sen = train_eg_str.split("\n")
+  f = open(NEW_EG_FILE_NAME, "w")
+  f.write(train_eg_str)
+  f.close()
+  f = open(NEW_LABEL_FILE_NAME, "w")
+  f.write(train_label_str)
+  f.close()
+  print(sen[1768])
+
+def gen_eval_file(dataset, EVAL_FILE_NAME):
+  eval_string = ""
+  cnt = 0
+  total_len = len(dataset['data'])
+  for paragraph in tqdm(dataset['data']):
+    cnt += 1
+    if cnt % 100 == 0:
+      print("Cnt percentage =====.    ", (cnt*100)/total_len)
+
+    context = paragraph['context']
+    paragraph_id = paragraph['id']
+
+    for qas in paragraph['qas']:
+      turn_id = qas['turn_id']
+      e_str = paragraph_id + ":" + str(turn_id)
+      eval_string += e_str + "\n"
+    #print(paragraph['id'], paragraph)
+    #break
+  f = open(EVAL_FILE_NAME, "w")
+  f.write(eval_string)
+  f.close()  
 
 class CoQADataset(Dataset):
     """CoQA dataset."""
 
     def __init__(self, model, tokenizer, filename):
         #timer = Timer('Load %s' % filename)
-
-        global word_embedding, word_id
-        self.filename = filename
-        self.paragraphs = []
-        self.unique_word = {"a"}
-        self.paragraphs_sentences = [[] for i in range(60000)]
-        self.paragraphs_questions = [[] for i in range(60000)]
-        self.paragraphs_answers = [[] for i in range(60000)]
-
         if filename == "data/coqa.dev.json":
-          return
+          EG_FILE_NAME = DEV_EG_FILE_NAME
+          LABEL_FILE_NAME = DEV_LABEL_FILE_NAME
+          NEW_EG_FILE_NAME = NEW_DEV_EG_FILE_NAME
+          NEW_LABEL_FILE_NAME = NEW_DEV_LABEL_FILE_NAME
+          LOWER_FILE_NAME = DEV_LOWER_FILE_NAME
+          TYPE_FILE_NAME = DEV_TYPE_FILE_NAME
+          EVAL_FILE_NAME = DEV_EVAL_FILE_NAME
+        else:
+          EG_FILE_NAME = TRAIN_EG_FILE_NAME
+          LABEL_FILE_NAME = TRAIN_LABEL_FILE_NAME
+          NEW_EG_FILE_NAME = NEW_TRAIN_EG_FILE_NAME
+          NEW_LABEL_FILE_NAME = NEW_TRAIN_LABEL_FILE_NAME
+          LOWER_FILE_NAME = TRAIN_LOWER_FILE_NAME
+          TYPE_FILE_NAME = TRAIN_TYPE_FILE_NAME
+          EVAL_FILE_NAME = TRAIN_EVAL_FILE_NAME
 
         dataset = read_json(filename)
 
-        #prepare_train_lower(dataset) # Create train_lower and train_eg
-        prepare_train_label(dataset) # Create train_label
-        #prepare_train_type(dataset)  # Creat train_type
-        return 
+        #Comment out next line to use bert embedding 
+        #bert_embedding(dataset, model, tokenizer)
 
-        print("File name in init. --------------------     ", self.filename, len(dataset['data']))
-
-        cnt = 0
-        paragraph_id = -1
-        # Put the model in "evaluation" mode,meaning feed-forward operation.
-        model.eval()
-        for paragraph in tqdm(dataset['data']):
-          context = paragraph['context']
-          #break
-
-          print(paragraph['annotated_context'])
-          return
-
-
-          paragraph_id += 1
-          self.paragraphs.append(context)
-          words = context.split()
-          for word in words:
-            self.unique_word.add(word)
-          #continue
-
-          sentence_list = split_into_sentences(context)
-          for sentence in sentence_list:
-            sentence = "[CLS] " + sentence + " [SEP]"
-            self.paragraphs_sentences[paragraph_id].append(sentence)
-            #sentence_embedding = get_embedding(model, tokenizer, sentence)
-
-          #question_answer = paragraph['qas']
-          for qas in paragraph['qas']:
-            question = qas['question']
-            answer = qas['answer']
-            self.paragraphs_questions[paragraph_id].append(question)
-            self.paragraphs_answers[paragraph_id].append(answer)
-
-            words = question.split()
-            for word in words:
-              self.unique_word.add(word)
-            words = answer.split()
-            for word in words:
-              self.unique_word.add(word)  
-
-            #question_embedding = get_embedding(model, tokenizer, question)
-            #answer_embedding = get_embedding(model, tokenizer, answer)
-
-            #print('qas.  ', question, answer)  
-        print("Embedding done.  && LEN of unique word  ", len(self.unique_word))
-
-        #if filename == 'data/coqa.train.json':
-        #  return
-
-        if os.path.isfile(WORD_EMBEDDING_FILE_NAME):
-          word_id = torch.load(WORD_ID_FILE_NAME)
-          word_embedding = torch.load(WORD_EMBEDDING_FILE_NAME)
-          print("Number of total word  >>>>>>>>>. ", len(word_embedding))
+        #Prepare all of the 4 types(lower, label, type, eg) of input data for our model
+        prepare_lower(TRAIN_LOWER_FILE_NAME, TRAIN_EG_FILE_NAME, dataset)
+        prepare_label(LABEL_FILE_NAME, dataset) 
+        prepare_type(TYPE_FILE_NAME, dataset)  
+        generate_new(EG_FILE_NAME, LABEL_FILE_NAME, NEW_EG_FILE_NAME, NEW_LABEL_FILE_NAME)
         
-        return
-        count = 0
-        sentence = "[CLS]"
-        for word in iter(self.unique_word):
-          count = count + 1
-          if count % 4000 == 0:
-            print("Total and percentage. ", count, (count*100)/len(self.unique_word))
-            #break
-          if count % 150 == 0:
-            sentence += " [SEP]"
-            get_embedding(model, tokenizer, sentence)
-            sentence = "[CLS]"
-
-          sentence += " " + word  
-
-        #torch.save(word_embedding, WORD_EMBEDDING_FILE_NAME)   
-        #torch.save(word_id, WORD_ID_FILE_NAME)   
-
-        # example to get embedding. Comment out next couple of line to get the word embedding of a sentence(test_sentence)
-        '''
-        test_sentence = "This is a test sentence."
-        test_sentence = "CLS" + test_sentence + "SEP"
-        tokenized_text = tokenizer.tokenize(sentence)
-        for word in tokenized_text:
-          word_embed = word_embedding[word]
-          print("Word and embedding", word, word_embed)
-
-        '''  
-
+        # Generate the file for evaluation
+        gen_eval_file(dataset, EVAL_FILE_NAME)
+        # Verify if the preprocessd data are well enough to train
+        verify(NEW_EG_FILE_NAME, NEW_LABEL_FILE_NAME)
+        
 
 if __name__=='__main__':
     from transformers import *

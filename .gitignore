@@ -1,8 +1,8 @@
 decoding/**
-
+data/coqa/** 
 
 *.pyc
 .vscode/**
 log/**
 models/** 
-data/coqa/** 
+data/real/** 

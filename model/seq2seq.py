@@ -146,8 +146,8 @@ def train(args, train_iter, dev, fields, checkpoint):
             opt.step()
 
             t2 = time.time()
-            # print('epc:{} iter:{} loss:{:.2f} t:{:.2f} lr:{:.1e}'.format(epc, iters + 1, loss, t2 - t1,
-            #                                                              opt.param_groups[0]['lr']))
+            print('epc:{} iter:{} loss:{:.2f} t:{:.2f} lr:{:.1e}'.format(epc, iters + 1, loss, t2 - t1,
+                                                                         opt.param_groups[0]['lr']))
 
         if epc < 5:
             print(f"finish epoch {epc}, lastest loss{loss}")

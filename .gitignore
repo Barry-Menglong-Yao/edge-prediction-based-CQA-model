@@ -1,38 +1,15 @@
 __pycache__/*.pyc
 *.pyc
-.vscode/settings.json
+
 decoding/gdp0.5_gl2.devorder
-models/gdp0.5_gl2.best.pt
+
+
+.vscode/settings.json
 .vscode/launch.json
 .vscode/.ropeproject/objectdb
-data/coqa/train_eg.txt
-data/coqa/train_lower.txt
-data/coqa/train_type.txt
 .vscode/.ropeproject/config.py
-data/coqa/train_label.txt
-  
-data/coqa/not_only_noun/train_eg.txt
-data/coqa/not_only_noun/train_label.txt
-data/coqa/dev/dev_type.txt
-data/coqa/dev/dev_label_new.txt
-data/coqa/dev/dev_eg_new.txt
-data/coqa/dev/dev_lower.txt
-log/training_2021-05-03 20:47:03.664
-log/training_2021-05-03 20:52:21.131
-log/training_2021-05-03 20:53:18.872
-log/training_2021-05-03 20:54:44.646
-log/training_2021-05-03 20:57:35.631
-log/training_2021-05-03 20:58:49.300
-log/training_2021-05-04 01:31:19.501
-log/training_2021-05-04 01:31:39.987
-log/training_2021-05-04 01:34:17.945
-log/training_2021-05-04 01:56:10.740
-log/training_164206
-log/training_164357.%f
-log/*
-models/gdp0.5_gl2.coqa_best.pt
-models/saved/gdp0.5_gl2.best.pt
-models/saved/gdp0.5_gl2.coqa_best.pt
-data/coqa/300/dev_eval.txt
-data/coqa/dev/coqa-dev-v1.0.json
-data/coqa/dev/dev_eval.txt
+.vscode/**
+   
+log/**
+models/** 
+data/coqa/** 

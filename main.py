@@ -44,23 +44,28 @@ def parse_args():
     # coqa_parser(parser)
     # dataset settings
     parser.add_argument('--gpu_list', type=str, default="3")   
-    # 1766
-    # parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/1766/train_lower.txt','data/coqa/1766/train_eg.txt','data/coqa/1766/train_label.txt','data/coqa/1766/train_type.txt',None])
-    # parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt','data/coqa/300/dev_eval.txt'])
-    # parser.add_argument('--test', type=str, nargs='+',default=['data/coqa/300/train_lower.txt','data/coqa/300/train_eg.txt','data/coqa/300/train_label.txt','data/coqa/300/train_type.txt','data/coqa/300/dev_eval.txt'])
-          
+   
+    mode='train'
+    parser.add_argument('--mode', type=str, default=mode,
+                        choices=['example','preprocess','train', 'test',
+                                 'distill'])  # distill : take a trained AR model and decode a training set
+    if mode=='example':
+        parser.add_argument('--corpus', type=str, nargs='+',default=['data/example/train/train_lower.txt','data/example/train/train_eg.txt','data/example/train/train_label.txt','data/example/train/train_type.txt',None])
+        parser.add_argument('--valid', type=str, nargs='+',default=['data/example/dev/train_lower.txt','data/example/dev/train_eg.txt','data/example/dev/train_label.txt','data/example/dev/train_type.txt','data/example/dev/dev_eval.txt'])
+        parser.add_argument('--test', type=str, nargs='+',default=['data/example/dev/train_lower.txt','data/example/dev/train_eg.txt','data/example/dev/train_label.txt','data/example/dev/train_type.txt','data/example/dev/dev_eval.txt'])
+    else:
+        parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt',None])
+        parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt','data/coqa/dev/dev_eval.txt'])
+        parser.add_argument('--test', type=str, nargs='+',  default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt' ,'data/coqa/dev/dev_eval.txt'])
 
-    # all
-    parser.add_argument('--corpus', type=str, nargs='+',default=['data/coqa/train_lower.txt','data/coqa/train_eg.txt','data/coqa/train_label.txt','data/coqa/train_type.txt',None])
-    parser.add_argument('--valid', type=str, nargs='+',default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt','data/coqa/dev/dev_eval.txt'])
-    parser.add_argument('--test', type=str, nargs='+',  default=['data/coqa/dev/dev_lower.txt','data/coqa/dev/dev_eg_new.txt','data/coqa/dev/dev_label_new.txt','data/coqa/dev/dev_type.txt' ,'data/coqa/dev/dev_eval.txt'])
-
+ 
+   
     parser.add_argument('--lang', type=str, nargs='+', help="the suffix of the corpus, translation language")
     
     parser.add_argument('--writetrans', type=str,default='decoding/gdp0.5_gl2.devorder', help='write translations for to a file')
     parser.add_argument('--ref', type=str, help='references, word unit')
 
-    parser.add_argument('--vocab', type=str,default='nips/vocab.new.100d.lower.pt')
+    parser.add_argument('--vocab', type=str,default='data/vocab.new.100d.lower.pt')
     parser.add_argument('--vocab_size', type=int, default=40000)
 
     parser.add_argument('--load_vocab', action='store_true', help='load a pre-computed vocabulary')
@@ -111,9 +116,6 @@ def parse_args():
     parser.add_argument('--early_stop', type=int, default=10)
 
     # running setting
-    parser.add_argument('--mode', type=str, default='train',
-                        choices=['train', 'test',
-                                 'distill'])  # distill : take a trained AR model and decode a training set
     parser.add_argument('--seed', type=int, default=1234, help='seed for randomness')
 
     parser.add_argument('--keep_cpts', type=int, default=1, help='save n checkpoints, when 1 save best model only')
@@ -191,7 +193,7 @@ and then :meth:`load_state_dict` to avoid GPU RAM surge when loading a model che
 
 
 def run_model(args):
-    if args.mode == 'train':
+    if args.mode == 'train' or args.mode=='example':
         if args.load_from is not None and len(args.load_from) == 1:
             load_from = args.load_from[0]
             print('{} load the checkpoint from {} for initilize or resume'.

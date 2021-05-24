@@ -257,7 +257,7 @@ def test_coqa_acc(pred_json):
     answer_filename='output/answers.json'
     with open(answer_filename, 'w') as outfile:
         json.dump(pred_json, outfile)
-    data_file="data/coqa/dev/coqa-dev-v1.0.json"
+    data_file="data/example/dev/coqa-dev-v1.0.json"
     evaluator = CoQAEvaluator( data_file)
     pred_data = CoQAEvaluator.preds_in_memory_to_dict(pred_json) 
     scores=evaluator.model_performance(pred_data)
